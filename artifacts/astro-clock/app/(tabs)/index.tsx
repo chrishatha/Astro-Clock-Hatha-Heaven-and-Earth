@@ -1,7 +1,15 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ClockFace from '@/components/ClockFace';
@@ -9,6 +17,9 @@ import PreviewDatePicker from '@/components/PreviewDatePicker';
 import PreviewTimeSlider from '@/components/PreviewTimeSlider';
 import { useClockContext } from '@/context/ClockContext';
 import { getDaysSinceMar21 } from '@/utils/astronomy';
+
+const DEFAULT_LAT = 48.2;
+const DEFAULT_LON = 16.37;
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
@@ -30,7 +41,7 @@ export default function ClockScreen() {
   const router = useRouter();
   const {
     now, previewDate, setPreviewDate, previewHour, setPreviewHour,
-    solarNoon, location,
+    solarNoon, location, usingGPS,
     layer2RotationDeg, layer3RotationDeg,
     sunAngleDeg, moonHandAngleDeg, crossRotationDeg,
     zodiacCurrentIndex, zodiacPrevIndex,
@@ -39,6 +50,32 @@ export default function ClockScreen() {
 
   const isEpagomenal = getDaysSinceMar21(now) >= 360;
   const isPreview = previewDate !== null;
+
+  // "No location set" = still on factory default and GPS not enabled
+  const noLocation =
+    !usingGPS &&
+    location.latitude === DEFAULT_LAT &&
+    location.longitude === DEFAULT_LON;
+
+  // Continuous blink animation for the settings button
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+  const blinkLoop = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (noLocation) {
+      blinkLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, { toValue: 0.15, duration: 550, useNativeDriver: true }),
+          Animated.timing(blinkAnim, { toValue: 1,    duration: 550, useNativeDriver: true }),
+        ])
+      );
+      blinkLoop.current.start();
+    } else {
+      blinkLoop.current?.stop();
+      blinkAnim.setValue(1);
+    }
+    return () => blinkLoop.current?.stop();
+  }, [noLocation]);
 
   const { width } = Dimensions.get('window');
   const clockSize = Math.min(width - 16, 520);
@@ -52,20 +89,29 @@ export default function ClockScreen() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <View style={styles.header}>
 
-        {/* Row 1: time | title (centred) | gear */}
+        {/* Row 1: time | title (centred) | [set location] gear */}
         <View style={styles.titleBar}>
           <Text style={styles.timeText}>{formatTime(now)}</Text>
           <Text style={styles.appTitle} numberOfLines={1}>Astro-Clock-HaTha</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/settings')}
-            style={styles.settingsBtn}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Feather name="settings" size={22} color="#c9a227" />
-          </TouchableOpacity>
+
+          {/* Settings area — blinks and shows label when no location set */}
+          <View style={styles.settingsArea}>
+            {noLocation && (
+              <Text style={styles.setLocationText}>set location</Text>
+            )}
+            <Animated.View style={{ opacity: blinkAnim }}>
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/settings')}
+                style={[styles.settingsBtn, noLocation && styles.settingsBtnAlert]}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Feather name="settings" size={22} color={noLocation ? '#ff6b35' : '#c9a227'} />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
         </View>
 
-        {/* Row 2: date badge + preview picker + step buttons */}
+        {/* Row 2: date badge | preview picker | step buttons */}
         <View style={styles.subBar}>
           <View style={styles.dateRow}>
             <Text style={styles.dateText}>
@@ -77,7 +123,6 @@ export default function ClockScreen() {
           </View>
 
           <View style={styles.previewRow}>
-            {/* ◀ step back one day */}
             {isPreview && (
               <TouchableOpacity
                 style={styles.stepBtn}
@@ -87,10 +132,7 @@ export default function ClockScreen() {
                 <Feather name="chevron-left" size={14} color="#c9a227" />
               </TouchableOpacity>
             )}
-
             <PreviewDatePicker previewDate={previewDate} onSet={setPreviewDate} />
-
-            {/* ▶ step forward one day */}
             {isPreview && (
               <TouchableOpacity
                 style={styles.stepBtn}
@@ -192,7 +234,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
 
-  // Row 1: time | title | gear — strict 3-column
+  // Row 1: strict 3-column — time | title | settings area
   titleBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -204,16 +246,27 @@ const styles = StyleSheet.create({
     color: '#e8d5a3',
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 2,
-    // no flex — shrinks to content
   },
   appTitle: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 11,
     color: '#c9a227',
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.8,
     textAlign: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
+  },
+  settingsArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
+  setLocationText: {
+    fontSize: 10,
+    color: '#ff6b35',
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 0.5,
   },
   settingsBtn: {
     padding: 8,
@@ -221,10 +274,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f1a28',
     borderWidth: 1,
     borderColor: '#1e2d42',
-    // no flex — shrinks to content
+  },
+  settingsBtnAlert: {
+    borderColor: '#ff6b35',
+    backgroundColor: '#1a0a00',
   },
 
-  // Row 2: date | preview area
+  // Row 2: date | preview row
   subBar: {
     flexDirection: 'row',
     alignItems: 'center',
