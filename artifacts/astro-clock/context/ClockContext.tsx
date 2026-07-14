@@ -20,6 +20,8 @@ export interface Location {
 
 export interface ClockValues {
   now: Date;
+  previewDate: Date | null;
+  setPreviewDate: (d: Date | null) => void;
   location: Location;
   usingGPS: boolean;
   solarNoon: Date | null;
@@ -45,9 +47,6 @@ const DEFAULT_LOCATION: Location = { latitude: 48.2, longitude: 16.37, name: 'Vi
 const ClockContext = createContext<ClockValues | null>(null);
 
 function computeLayer2Rotation(now: Date, solarNoon: Date | null): number {
-  // 24-hour wheel: current local hour at south (0°)
-  // Hours 1-24 anticlockwise; hour H is at disc angle (H-1)*15° anticlockwise.
-  // Rotation clockwise = (H - 1) * 15 brings H to south.
   let h = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
   if (h === 0) h = 24;
   return ((h - 1) * 15) % 360;
@@ -55,9 +54,13 @@ function computeLayer2Rotation(now: Date, solarNoon: Date | null): number {
 
 export function ClockProvider({ children }: { children: React.ReactNode }) {
   const [now, setNow] = useState(new Date());
+  const [previewDate, setPreviewDate] = useState<Date | null>(null);
   const [location, setLocationState] = useState<Location>(DEFAULT_LOCATION);
   const [usingGPS, setUsingGPSState] = useState(false);
   const [locationLoaded, setLocationLoaded] = useState(false);
+
+  // The date used for all clock computations
+  const effective = previewDate ?? now;
 
   // Restore saved location
   useEffect(() => {
@@ -113,7 +116,7 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Tick every second
+  // Tick every second (live clock only)
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
@@ -124,21 +127,20 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
     if (locationLoaded && usingGPS) refreshGPS();
   }, [locationLoaded]);
 
-  const solarNoon = calculateSolarNoon(now, location.latitude, location.longitude);
+  const solarNoon = calculateSolarNoon(effective, location.latitude, location.longitude);
   const solarNoonHour = solarNoon.getHours() + solarNoon.getMinutes() / 60;
 
-  const layer2RotationDeg = computeLayer2Rotation(now, solarNoon);
+  const layer2RotationDeg = computeLayer2Rotation(effective, solarNoon);
 
-  // Zodiac daily rotation: at solar noon the radiance sign is at south (base rotation).
-  // Earth rotates 15°/hour, so the zodiac also shifts 15° clockwise per hour from noon.
-  const baseZodiacRotation = getZodiacRotation(now);
-  const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  const baseZodiacRotation = getZodiacRotation(effective);
+  const currentHour = effective.getHours() + effective.getMinutes() / 60 + effective.getSeconds() / 3600;
   const hoursFromNoon = currentHour - solarNoonHour;
   const layer3RotationDeg = ((baseZodiacRotation + hoursFromNoon * 15) % 360 + 360) % 360;
-  const sunAngleDeg = getSunAngle(now);
-  const moonHandAngleDeg = getMoonHandAngle(now);
-  const crossRotationDeg = getCrossRotation(now.getFullYear(), now.getMonth());
-  const zodiacCurrentIndex = getZodiacIndex(now);
+
+  const sunAngleDeg = getSunAngle(effective);
+  const moonHandAngleDeg = getMoonHandAngle(effective);
+  const crossRotationDeg = getCrossRotation(effective.getFullYear(), effective.getMonth());
+  const zodiacCurrentIndex = getZodiacIndex(effective);
   const zodiacPrevIndex = (zodiacCurrentIndex - 1 + 12) % 12;
 
   const {
@@ -146,11 +148,14 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
     firstQuarter: firstQuarterDay,
     newMoon: newMoonDay,
     lastQuarter: lastQuarterDay,
-  } = getMoonPhaseDays(now.getFullYear(), now.getMonth());
+  } = getMoonPhaseDays(effective.getFullYear(), effective.getMonth());
 
   return (
     <ClockContext.Provider value={{
-      now, location, usingGPS, solarNoon, solarNoonHour,
+      now: effective,
+      previewDate,
+      setPreviewDate,
+      location, usingGPS, solarNoon, solarNoonHour,
       layer2RotationDeg, layer3RotationDeg, sunAngleDeg,
       moonHandAngleDeg, crossRotationDeg, zodiacCurrentIndex, zodiacPrevIndex,
       fullMoonDay, firstQuarterDay, newMoonDay, lastQuarterDay,

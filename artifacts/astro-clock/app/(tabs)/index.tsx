@@ -5,6 +5,7 @@ import { Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ClockFace from '@/components/ClockFace';
+import PreviewDatePicker from '@/components/PreviewDatePicker';
 import { useClockContext } from '@/context/ClockContext';
 import { getDaysSinceMar21 } from '@/utils/astronomy';
 
@@ -21,7 +22,8 @@ export default function ClockScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const {
-    now, solarNoon, location,
+    now, previewDate, setPreviewDate,
+    solarNoon, location,
     layer2RotationDeg, layer3RotationDeg,
     sunAngleDeg, moonHandAngleDeg, crossRotationDeg,
     zodiacCurrentIndex, zodiacPrevIndex,
@@ -50,6 +52,7 @@ export default function ClockScreen() {
               <Text style={styles.sunDayText}>☀ {Math.round(sunAngleDeg)}</Text>
             </View>
           </View>
+          <PreviewDatePicker previewDate={previewDate} onSet={setPreviewDate} />
         </View>
         <Text style={styles.appTitle}>Astro-Clock-HaTha</Text>
         <TouchableOpacity
@@ -135,7 +138,7 @@ const styles = StyleSheet.create({
   header: {
     width: '100%',
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     marginBottom: 4,
@@ -182,6 +185,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     flex: 1,
     textAlign: 'center',
+    marginTop: 4,
   },
   settingsBtn: {
     padding: 8,
