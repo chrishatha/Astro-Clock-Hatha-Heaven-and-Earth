@@ -19,6 +19,12 @@ function formatSolarNoon(date: Date | null): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
+function stepDay(base: Date, delta: number): Date {
+  const d = new Date(base);
+  d.setDate(d.getDate() + delta);
+  return d;
+}
+
 export default function ClockScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -43,22 +49,13 @@ export default function ClockScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad + 8, paddingBottom: botPad + 8 }]}>
 
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────── */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+
+        {/* Row 1: time | title (centred) | gear */}
+        <View style={styles.titleBar}>
           <Text style={styles.timeText}>{formatTime(now)}</Text>
-          <View style={styles.dateRow}>
-            <Text style={styles.dateText}>
-              {now.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' })}
-            </Text>
-            <View style={styles.sunDayBadge}>
-              <Text style={styles.sunDayText}>☀ {Math.round(sunAngleDeg)}</Text>
-            </View>
-          </View>
-          <PreviewDatePicker previewDate={previewDate} onSet={setPreviewDate} />
-        </View>
-        <View style={styles.headerRight}>
-          <Text style={styles.appTitle}>Astro-Clock-HaTha</Text>
+          <Text style={styles.appTitle} numberOfLines={1}>Astro-Clock-HaTha</Text>
           <TouchableOpacity
             onPress={() => router.push('/(tabs)/settings')}
             style={styles.settingsBtn}
@@ -67,16 +64,54 @@ export default function ClockScreen() {
             <Feather name="settings" size={22} color="#c9a227" />
           </TouchableOpacity>
         </View>
+
+        {/* Row 2: date badge + preview picker + step buttons */}
+        <View style={styles.subBar}>
+          <View style={styles.dateRow}>
+            <Text style={styles.dateText}>
+              {now.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            </Text>
+            <View style={styles.sunDayBadge}>
+              <Text style={styles.sunDayText}>☀ {Math.round(sunAngleDeg)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.previewRow}>
+            {/* ◀ step back one day */}
+            {isPreview && (
+              <TouchableOpacity
+                style={styles.stepBtn}
+                onPress={() => setPreviewDate(stepDay(previewDate!, -1))}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="chevron-left" size={14} color="#c9a227" />
+              </TouchableOpacity>
+            )}
+
+            <PreviewDatePicker previewDate={previewDate} onSet={setPreviewDate} />
+
+            {/* ▶ step forward one day */}
+            {isPreview && (
+              <TouchableOpacity
+                style={styles.stepBtn}
+                onPress={() => setPreviewDate(stepDay(previewDate!, +1))}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="chevron-right" size={14} color="#c9a227" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </View>
 
-      {/* Time slider — only visible in preview mode */}
+      {/* ── Time slider (preview mode only) ───────────────────────── */}
       {isPreview && (
         <View style={styles.sliderPanel}>
           <PreviewTimeSlider hour={previewHour} onChange={setPreviewHour} />
         </View>
       )}
 
-      {/* Clock */}
+      {/* ── Clock ──────────────────────────────────────────────────── */}
       <View style={styles.clockContainer}>
         <ClockFace
           size={clockSize}
@@ -95,7 +130,7 @@ export default function ClockScreen() {
         />
       </View>
 
-      {/* Info bar */}
+      {/* ── Info bar ───────────────────────────────────────────────── */}
       <View style={styles.infoBar}>
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
@@ -148,21 +183,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+
+  // ── Header ────────────────────────────────────────────────────────
   header: {
     width: '100%',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     marginBottom: 2,
+    gap: 4,
   },
-  headerLeft: {
-    gap: 2,
+
+  // Row 1: time | title | gear — strict 3-column
+  titleBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  timeText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#e8d5a3',
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 2,
+    // no flex — shrinks to content
+  },
+  appTitle: {
+    flex: 1,
+    fontSize: 13,
+    color: '#c9a227',
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    paddingHorizontal: 6,
+  },
+  settingsBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#0f1a28',
+    borderWidth: 1,
+    borderColor: '#1e2d42',
+    // no flex — shrinks to content
+  },
+
+  // Row 2: date | preview area
+  subBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#7a8a9a',
+    fontFamily: 'Inter_400Regular',
+    letterSpacing: 1,
   },
   sunDayBadge: {
     backgroundColor: '#1a1400',
@@ -178,38 +256,25 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.5,
   },
-  timeText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#e8d5a3',
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 2,
+
+  // Preview pill + step buttons
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  dateText: {
-    fontSize: 13,
-    color: '#7a8a9a',
-    fontFamily: 'Inter_400Regular',
-    letterSpacing: 1,
-  },
-  headerRight: {
-    alignItems: 'flex-end',
-    gap: 6,
-    flexShrink: 0,
-  },
-  appTitle: {
-    fontSize: 13,
-    color: '#c9a227',
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 0.8,
-    textAlign: 'right',
-  },
-  settingsBtn: {
-    padding: 8,
-    borderRadius: 20,
+  stepBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
     backgroundColor: '#0f1a28',
     borderWidth: 1,
-    borderColor: '#1e2d42',
+    borderColor: '#c9a227',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
+  // ── Slider ────────────────────────────────────────────────────────
   sliderPanel: {
     width: '100%',
     backgroundColor: '#0a1220',
@@ -218,11 +283,15 @@ const styles = StyleSheet.create({
     borderColor: '#c9a22733',
     paddingBottom: 4,
   },
+
+  // ── Clock ─────────────────────────────────────────────────────────
   clockContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // ── Info bar ──────────────────────────────────────────────────────
   infoBar: {
     backgroundColor: '#0a1220',
     borderRadius: 12,
