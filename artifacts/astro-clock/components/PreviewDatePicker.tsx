@@ -1,4 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Feather } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -21,7 +22,7 @@ function formatPreview(d: Date): string {
   return d.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// ─── Web version ──────────────────────────────────────────────────────────────
+// ─── Web version ───────────────────────────────────────────────────────────────
 function WebPicker({ previewDate, onSet }: Props) {
   function toInputValue(d: Date): string {
     const y = d.getFullYear().toString().padStart(4, '0');
@@ -39,9 +40,11 @@ function WebPicker({ previewDate, onSet }: Props) {
   }
 
   const inputValue = previewDate ? toInputValue(previewDate) : '';
+  const isActive = !!previewDate;
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.pill, isActive ? styles.pillActive : styles.pillIdle]}>
+      <Feather name="calendar" size={11} color={isActive ? '#c9a227' : '#5a8a9a'} style={{ marginRight: 2 }} />
       {/* @ts-ignore — web-only input element */}
       <input
         type="date"
@@ -52,25 +55,30 @@ function WebPicker({ previewDate, onSet }: Props) {
         style={{
           background: 'transparent',
           border: 'none',
-          color: previewDate ? '#c9a227' : '#4a5a6a',
-          fontSize: 12,
+          color: isActive ? '#c9a227' : '#5a8a9a',
+          fontSize: 11,
           fontFamily: 'inherit',
           cursor: 'pointer',
           outline: 'none',
           padding: 0,
-          width: previewDate ? 'auto' : 110,
+          letterSpacing: '0.5px',
         }}
-        placeholder="set preview date"
       />
-      {previewDate && (
+      {isActive ? (
         <>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>preview</Text>
           </View>
-          <TouchableOpacity onPress={() => onSet(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.clearBtn}>✕</Text>
+          <TouchableOpacity
+            onPress={() => onSet(null)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.clearBtn}
+          >
+            <Text style={styles.clearBtnText}>✕</Text>
           </TouchableOpacity>
         </>
+      ) : (
+        <Text style={styles.idleHint}>set preview date</Text>
       )}
     </View>
   );
@@ -80,6 +88,8 @@ function WebPicker({ previewDate, onSet }: Props) {
 function NativePicker({ previewDate, onSet }: Props) {
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(previewDate ?? new Date());
+
+  const isActive = !!previewDate;
 
   function open() {
     setTempDate(previewDate ?? new Date());
@@ -105,29 +115,41 @@ function NativePicker({ previewDate, onSet }: Props) {
   }
 
   return (
-    <View style={styles.row}>
-      <TouchableOpacity onPress={open} style={styles.selectBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Text style={[styles.selectText, previewDate ? styles.selectTextActive : null]}>
-          {previewDate ? formatPreview(previewDate) : 'set preview date'}
-        </Text>
+    <>
+      <TouchableOpacity
+        onPress={open}
+        activeOpacity={0.7}
+        style={[styles.pill, isActive ? styles.pillActive : styles.pillIdle]}
+      >
+        <Feather name="calendar" size={11} color={isActive ? '#c9a227' : '#5a8a9a'} style={{ marginRight: 4 }} />
+        {isActive ? (
+          <>
+            <Text style={styles.activeDate}>{formatPreview(previewDate!)}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>preview</Text>
+            </View>
+          </>
+        ) : (
+          <Text style={styles.idleHint}>set preview date</Text>
+        )}
       </TouchableOpacity>
 
-      {previewDate && (
-        <>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>preview</Text>
-          </View>
-          <TouchableOpacity onPress={() => onSet(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.clearBtn}>✕</Text>
-          </TouchableOpacity>
-        </>
+      {isActive && (
+        <TouchableOpacity
+          onPress={() => onSet(null)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.clearBtn}
+        >
+          <Text style={styles.clearBtnText}>✕</Text>
+        </TouchableOpacity>
       )}
 
-      {/* iOS uses a modal so the user can confirm/cancel */}
+      {/* iOS modal */}
       {showPicker && Platform.OS === 'ios' && (
         <Modal transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Preview Date</Text>
               <DateTimePicker
                 value={tempDate}
                 mode="date"
@@ -151,7 +173,7 @@ function NativePicker({ previewDate, onSet }: Props) {
         </Modal>
       )}
 
-      {/* Android picker is inline */}
+      {/* Android system picker */}
       {showPicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={tempDate}
@@ -162,71 +184,114 @@ function NativePicker({ previewDate, onSet }: Props) {
           onChange={handleChange}
         />
       )}
-    </View>
+    </>
   );
 }
 
 // ─── Export ────────────────────────────────────────────────────────────────────
 export default function PreviewDatePicker(props: Props) {
-  if (Platform.OS === 'web') return <WebPicker {...props} />;
-  return <NativePicker {...props} />;
+  return (
+    <View style={styles.wrapper}>
+      {Platform.OS === 'web' ? <WebPicker {...props} /> : <NativePicker {...props} />}
+    </View>
+  );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  row: {
+  wrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 3,
+    marginTop: 5,
   },
-  selectBtn: {
-    paddingVertical: 1,
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  selectText: {
-    fontSize: 12,
-    color: '#4a5a6a',
-    fontFamily: 'Inter_400Regular',
-    letterSpacing: 0.3,
+  pillIdle: {
+    backgroundColor: '#0a1624',
+    borderColor: '#2a5a6a',
+    borderStyle: 'dashed',
   },
-  selectTextActive: {
+  pillActive: {
+    backgroundColor: '#110d00',
+    borderColor: '#c9a227',
+    borderStyle: 'solid',
+  },
+  idleHint: {
+    fontSize: 11,
+    color: '#5a8a9a',
+    fontFamily: 'Inter_500Medium',
+    letterSpacing: 0.4,
+  },
+  activeDate: {
+    fontSize: 11,
     color: '#c9a227',
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 0.5,
   },
   badge: {
     backgroundColor: '#1a1400',
     borderRadius: 4,
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: 1,
     borderWidth: 1,
     borderColor: '#c9a227',
+    marginLeft: 2,
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#c9a227',
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   clearBtn: {
-    fontSize: 13,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#1a1400',
+    borderWidth: 1,
+    borderColor: '#c9a227',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearBtnText: {
+    fontSize: 10,
     color: '#c9a227',
     fontFamily: 'Inter_600SemiBold',
-    lineHeight: 16,
+    lineHeight: 12,
   },
   // Modal (iOS)
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalCard: {
     backgroundColor: '#0a1220',
     borderRadius: 16,
-    paddingBottom: 12,
+    paddingBottom: 16,
     borderWidth: 1,
-    borderColor: '#1e2d42',
+    borderColor: '#2a5a6a',
     width: 320,
     overflow: 'hidden',
+  },
+  modalTitle: {
+    fontSize: 14,
+    color: '#c9a227',
+    fontFamily: 'Inter_600SemiBold',
+    textAlign: 'center',
+    paddingTop: 16,
+    paddingBottom: 4,
+    letterSpacing: 0.8,
   },
   modalBtns: {
     flexDirection: 'row',
