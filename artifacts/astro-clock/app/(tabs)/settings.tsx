@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +26,8 @@ export default function SettingsScreen() {
   const [lngInput, setLngInput] = useState(String(location.longitude));
   const [nameInput, setNameInput] = useState(location.name);
   const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -57,7 +59,9 @@ export default function SettingsScreen() {
     }
     setLocation({ latitude: lat, longitude: lng, name: nameInput.trim() || 'Custom' });
     setUsingGPS(false);
-    Alert.alert('Saved', 'Location updated successfully.');
+    setSaved(true);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSaved(false), 3000);
   }
 
   const PRESETS = [
@@ -153,8 +157,14 @@ export default function SettingsScreen() {
             keyboardType="numeric"
           />
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-            <Text style={styles.saveBtnText}>Save Location</Text>
+          <TouchableOpacity
+            style={[styles.saveBtn, saved && styles.saveBtnSaved]}
+            onPress={handleSave}
+          >
+            {saved && <Feather name="check" size={16} color={saved ? '#fff' : '#06080f'} />}
+            <Text style={[styles.saveBtnText, saved && styles.saveBtnTextSaved]}>
+              {saved ? 'Location saved' : 'Save Location'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -340,13 +350,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 13,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
     marginTop: 4,
+  },
+  saveBtnSaved: {
+    backgroundColor: '#2a7a3a',
   },
   saveBtnText: {
     fontSize: 15,
     fontWeight: '700',
     color: '#06080f',
     fontFamily: 'Inter_700Bold',
+  },
+  saveBtnTextSaved: {
+    color: '#ffffff',
   },
   presetGrid: {
     flexDirection: 'row',
