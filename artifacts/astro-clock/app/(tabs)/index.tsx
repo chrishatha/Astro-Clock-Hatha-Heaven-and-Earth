@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ClockFace from '@/components/ClockFace';
 import PreviewDatePicker from '@/components/PreviewDatePicker';
+import PreviewTimeSlider from '@/components/PreviewTimeSlider';
 import { useClockContext } from '@/context/ClockContext';
 import { getDaysSinceMar21 } from '@/utils/astronomy';
 
@@ -22,7 +23,7 @@ export default function ClockScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const {
-    now, previewDate, setPreviewDate,
+    now, previewDate, setPreviewDate, previewHour, setPreviewHour,
     solarNoon, location,
     layer2RotationDeg, layer3RotationDeg,
     sunAngleDeg, moonHandAngleDeg, crossRotationDeg,
@@ -31,6 +32,7 @@ export default function ClockScreen() {
   } = useClockContext();
 
   const isEpagomenal = getDaysSinceMar21(now) >= 360;
+  const isPreview = previewDate !== null;
 
   const { width } = Dimensions.get('window');
   const clockSize = Math.min(width - 16, 520);
@@ -40,6 +42,7 @@ export default function ClockScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad + 8, paddingBottom: botPad + 8 }]}>
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -63,6 +66,13 @@ export default function ClockScreen() {
           <Feather name="settings" size={22} color="#c9a227" />
         </TouchableOpacity>
       </View>
+
+      {/* Time slider — only visible in preview mode */}
+      {isPreview && (
+        <View style={styles.sliderPanel}>
+          <PreviewTimeSlider hour={previewHour} onChange={setPreviewHour} />
+        </View>
+      )}
 
       {/* Clock */}
       <View style={styles.clockContainer}>
@@ -124,6 +134,7 @@ export default function ClockScreen() {
           </View>
         </View>
       </View>
+
     </View>
   );
 }
@@ -141,7 +152,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   headerLeft: {
     gap: 2,
@@ -194,6 +205,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1e2d42',
   },
+  sliderPanel: {
+    width: '100%',
+    backgroundColor: '#0a1220',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#c9a22733',
+    paddingBottom: 4,
+  },
   clockContainer: {
     flex: 1,
     alignItems: 'center',
@@ -209,7 +228,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1e2d42',
     width: '92%',
-    gap: 0,
   },
   infoRow: {
     flexDirection: 'row',

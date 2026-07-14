@@ -22,6 +22,8 @@ export interface ClockValues {
   now: Date;
   previewDate: Date | null;
   setPreviewDate: (d: Date | null) => void;
+  previewHour: number;           // 0–24, fractional minutes
+  setPreviewHour: (h: number) => void;
   location: Location;
   usingGPS: boolean;
   solarNoon: Date | null;
@@ -46,21 +48,41 @@ const DEFAULT_LOCATION: Location = { latitude: 48.2, longitude: 16.37, name: 'Vi
 
 const ClockContext = createContext<ClockValues | null>(null);
 
-function computeLayer2Rotation(now: Date, solarNoon: Date | null): number {
-  let h = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+function computeLayer2Rotation(date: Date): number {
+  let h = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
   if (h === 0) h = 24;
   return ((h - 1) * 15) % 360;
 }
 
+/** Build a Date that has previewDate's calendar day but previewHour's time */
+function buildEffective(previewDate: Date, previewHour: number): Date {
+  const d = new Date(previewDate);
+  const h = Math.floor(previewHour);
+  const m = Math.floor((previewHour - h) * 60);
+  const s = Math.floor(((previewHour - h) * 60 - m) * 60);
+  d.setHours(h, m, s, 0);
+  return d;
+}
+
 export function ClockProvider({ children }: { children: React.ReactNode }) {
   const [now, setNow] = useState(new Date());
-  const [previewDate, setPreviewDate] = useState<Date | null>(null);
+  const [previewDate, setPreviewDateState] = useState<Date | null>(null);
+  const [previewHour, setPreviewHour] = useState<number>(12);
   const [location, setLocationState] = useState<Location>(DEFAULT_LOCATION);
   const [usingGPS, setUsingGPSState] = useState(false);
   const [locationLoaded, setLocationLoaded] = useState(false);
 
+  // When a preview date is chosen, seed the hour from current live time
+  const setPreviewDate = useCallback((d: Date | null) => {
+    setPreviewDateState(d);
+    if (d !== null) {
+      const live = new Date();
+      setPreviewHour(live.getHours() + live.getMinutes() / 60 + live.getSeconds() / 3600);
+    }
+  }, []);
+
   // The date used for all clock computations
-  const effective = previewDate ?? now;
+  const effective = previewDate ? buildEffective(previewDate, previewHour) : now;
 
   // Restore saved location
   useEffect(() => {
@@ -82,9 +104,7 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem('clockLocation', JSON.stringify({ loc: location, gps: usingGPS }));
   }, [location, usingGPS, locationLoaded]);
 
-  const setLocation = useCallback((loc: Location) => {
-    setLocationState(loc);
-  }, []);
+  const setLocation = useCallback((loc: Location) => setLocationState(loc), []);
 
   const setUsingGPS = useCallback((v: boolean) => {
     setUsingGPSState(v);
@@ -106,17 +126,13 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          setLocationState({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            name: 'GPS',
-          });
+          setLocationState({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, name: 'GPS' });
         }
       } catch {}
     }
   }, []);
 
-  // Tick every second (live clock only)
+  // Tick every second — only drives live clock
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
@@ -130,7 +146,7 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
   const solarNoon = calculateSolarNoon(effective, location.latitude, location.longitude);
   const solarNoonHour = solarNoon.getHours() + solarNoon.getMinutes() / 60;
 
-  const layer2RotationDeg = computeLayer2Rotation(effective, solarNoon);
+  const layer2RotationDeg = computeLayer2Rotation(effective);
 
   const baseZodiacRotation = getZodiacRotation(effective);
   const currentHour = effective.getHours() + effective.getMinutes() / 60 + effective.getSeconds() / 3600;
@@ -155,6 +171,8 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
       now: effective,
       previewDate,
       setPreviewDate,
+      previewHour,
+      setPreviewHour,
       location, usingGPS, solarNoon, solarNoonHour,
       layer2RotationDeg, layer3RotationDeg, sunAngleDeg,
       moonHandAngleDeg, crossRotationDeg, zodiacCurrentIndex, zodiacPrevIndex,
