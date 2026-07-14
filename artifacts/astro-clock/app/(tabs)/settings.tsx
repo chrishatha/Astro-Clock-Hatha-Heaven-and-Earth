@@ -21,7 +21,7 @@ import { useClockContext } from '@/context/ClockContext';
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { location, usingGPS, setLocation, setUsingGPS, refreshGPS } = useClockContext();
+  const { location, usingGPS, setLocation, setUsingGPS, refreshGPS, resetLocation } = useClockContext();
   const [latInput, setLatInput] = useState(String(location.latitude));
   const [lngInput, setLngInput] = useState(String(location.longitude));
   const [nameInput, setNameInput] = useState(location.name);
@@ -181,6 +181,21 @@ export default function SettingsScreen() {
             ))}
           </View>
         </View>
+
+        {/* Reset location */}
+        <TouchableOpacity
+          style={styles.resetBtn}
+          onPress={() => {
+            resetLocation();
+            setLatInput(String(48.2));
+            setLngInput(String(16.37));
+            setNameInput('Vienna');
+            Alert.alert('Location reset', 'Location cleared. The settings reminder will appear again so you can set a new location.');
+          }}
+        >
+          <Feather name="x-circle" size={16} color="#ff6b35" />
+          <Text style={styles.resetBtnText}>Reset Location</Text>
+        </TouchableOpacity>
 
         {/* Info */}
         <View style={styles.card}>
@@ -363,6 +378,24 @@ const styles = StyleSheet.create({
     color: '#5a6a7a',
     fontFamily: 'Inter_400Regular',
     lineHeight: 22,
+  },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ff6b35',
+    backgroundColor: '#1a0800',
+  },
+  resetBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ff6b35',
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 0.4,
   },
   contactBtn: {
     backgroundColor: '#c9a227',

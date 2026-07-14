@@ -28,6 +28,8 @@ export interface ClockValues {
   usingGPS: boolean;
   /** true once the user has explicitly saved any location (persists across restarts) */
   locationConfirmed: boolean;
+  /** Clears locationConfirmed and resets to default — triggers the blink reminder again */
+  resetLocation: () => void;
   solarNoon: Date | null;
   solarNoonHour: number;
   layer2RotationDeg: number;
@@ -122,7 +124,13 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
   // ── Public setters ──────────────────────────────────────────────────────────
   const setLocation = useCallback((loc: Location) => {
     setLocationState(loc);
-    setLocationConfirmedState(true);   // any explicit save confirms location
+    setLocationConfirmedState(true);
+  }, []);
+
+  const resetLocation = useCallback(() => {
+    setLocationState(DEFAULT_LOCATION);
+    setUsingGPSState(false);
+    setLocationConfirmedState(false);
   }, []);
 
   const setUsingGPS = useCallback((v: boolean) => {
@@ -198,7 +206,7 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
       now: effective,
       previewDate, setPreviewDate,
       previewHour, setPreviewHour,
-      location, usingGPS, locationConfirmed,
+      location, usingGPS, locationConfirmed, resetLocation,
       solarNoon, solarNoonHour,
       layer2RotationDeg, layer3RotationDeg, sunAngleDeg,
       moonHandAngleDeg, crossRotationDeg, zodiacCurrentIndex, zodiacPrevIndex,
