@@ -22,10 +22,12 @@ export interface ClockValues {
   now: Date;
   previewDate: Date | null;
   setPreviewDate: (d: Date | null) => void;
-  previewHour: number;           // 0–24, fractional minutes
+  previewHour: number;
   setPreviewHour: (h: number) => void;
   location: Location;
   usingGPS: boolean;
+  /** true once the user has explicitly saved any location (persists across restarts) */
+  locationConfirmed: boolean;
   solarNoon: Date | null;
   solarNoonHour: number;
   layer2RotationDeg: number;
@@ -54,7 +56,6 @@ function computeLayer2Rotation(date: Date): number {
   return ((h - 1) * 15) % 360;
 }
 
-/** Build a Date that has previewDate's calendar day but previewHour's time */
 function buildEffective(previewDate: Date, previewHour: number): Date {
   const d = new Date(previewDate);
   const h = Math.floor(previewHour);
@@ -71,8 +72,10 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocationState] = useState<Location>(DEFAULT_LOCATION);
   const [usingGPS, setUsingGPSState] = useState(false);
   const [locationLoaded, setLocationLoaded] = useState(false);
+  const [locationConfirmed, setLocationConfirmedState] = useState(false);
+  const [confirmedLoaded, setConfirmedLoaded] = useState(false);
 
-  // When a preview date is chosen, seed the hour from current live time
+  // Seed previewHour from live clock when a preview date is chosen
   const setPreviewDate = useCallback((d: Date | null) => {
     setPreviewDateState(d);
     if (d !== null) {
@@ -81,41 +84,63 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // The date used for all clock computations
   const effective = previewDate ? buildEffective(previewDate, previewHour) : now;
 
-  // Restore saved location
+  // ── Restore from storage ────────────────────────────────────────────────────
   useEffect(() => {
-    AsyncStorage.getItem('clockLocation').then(val => {
-      if (val) {
+    AsyncStorage.multiGet(['clockLocation', 'locationConfirmed']).then(pairs => {
+      const locVal = pairs[0][1];
+      const confVal = pairs[1][1];
+
+      if (locVal) {
         try {
-          const saved = JSON.parse(val) as { loc: Location; gps: boolean };
+          const saved = JSON.parse(locVal) as { loc: Location; gps: boolean };
           setLocationState(saved.loc);
           setUsingGPSState(saved.gps);
         } catch {}
       }
+      if (confVal === 'true') {
+        setLocationConfirmedState(true);
+      }
       setLocationLoaded(true);
+      setConfirmedLoaded(true);
     });
   }, []);
 
-  // Persist location changes
+  // ── Persist location ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!locationLoaded) return;
     AsyncStorage.setItem('clockLocation', JSON.stringify({ loc: location, gps: usingGPS }));
   }, [location, usingGPS, locationLoaded]);
 
-  const setLocation = useCallback((loc: Location) => setLocationState(loc), []);
+  // ── Persist locationConfirmed ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!confirmedLoaded) return;
+    AsyncStorage.setItem('locationConfirmed', locationConfirmed ? 'true' : 'false');
+  }, [locationConfirmed, confirmedLoaded]);
+
+  // ── Public setters ──────────────────────────────────────────────────────────
+  const setLocation = useCallback((loc: Location) => {
+    setLocationState(loc);
+    setLocationConfirmedState(true);   // any explicit save confirms location
+  }, []);
 
   const setUsingGPS = useCallback((v: boolean) => {
     setUsingGPSState(v);
-    if (v) refreshGPS();
+    if (v) {
+      setLocationConfirmedState(true); // enabling GPS confirms location
+      refreshGPS();
+    }
   }, []);
 
   const refreshGPS = useCallback(async () => {
     if (Platform.OS === 'web') {
       if (typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          pos => setLocationState({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, name: 'GPS' }),
+          pos => {
+            setLocationState({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, name: 'GPS' });
+            setLocationConfirmedState(true);
+          },
           () => {},
           { enableHighAccuracy: false, timeout: 10000 }
         );
@@ -127,22 +152,24 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
         if (status === 'granted') {
           const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           setLocationState({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, name: 'GPS' });
+          setLocationConfirmedState(true);
         }
       } catch {}
     }
   }, []);
 
-  // Tick every second — only drives live clock
+  // ── Live clock tick ─────────────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  // Auto GPS on mount if opted in
+  // Auto-GPS on mount if opted in
   useEffect(() => {
     if (locationLoaded && usingGPS) refreshGPS();
   }, [locationLoaded]);
 
+  // ── Derived values ──────────────────────────────────────────────────────────
   const solarNoon = calculateSolarNoon(effective, location.latitude, location.longitude);
   const solarNoonHour = solarNoon.getHours() + solarNoon.getMinutes() / 60;
 
@@ -169,11 +196,10 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
   return (
     <ClockContext.Provider value={{
       now: effective,
-      previewDate,
-      setPreviewDate,
-      previewHour,
-      setPreviewHour,
-      location, usingGPS, solarNoon, solarNoonHour,
+      previewDate, setPreviewDate,
+      previewHour, setPreviewHour,
+      location, usingGPS, locationConfirmed,
+      solarNoon, solarNoonHour,
       layer2RotationDeg, layer3RotationDeg, sunAngleDeg,
       moonHandAngleDeg, crossRotationDeg, zodiacCurrentIndex, zodiacPrevIndex,
       fullMoonDay, firstQuarterDay, newMoonDay, lastQuarterDay,

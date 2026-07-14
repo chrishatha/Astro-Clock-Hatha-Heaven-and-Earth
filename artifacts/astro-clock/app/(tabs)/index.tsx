@@ -18,9 +18,6 @@ import PreviewTimeSlider from '@/components/PreviewTimeSlider';
 import { useClockContext } from '@/context/ClockContext';
 import { getDaysSinceMar21 } from '@/utils/astronomy';
 
-const DEFAULT_LAT = 48.2;
-const DEFAULT_LON = 16.37;
-
 function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 }
@@ -41,7 +38,7 @@ export default function ClockScreen() {
   const router = useRouter();
   const {
     now, previewDate, setPreviewDate, previewHour, setPreviewHour,
-    solarNoon, location, usingGPS,
+    solarNoon, location, locationConfirmed,
     layer2RotationDeg, layer3RotationDeg,
     sunAngleDeg, moonHandAngleDeg, crossRotationDeg,
     zodiacCurrentIndex, zodiacPrevIndex,
@@ -51,11 +48,8 @@ export default function ClockScreen() {
   const isEpagomenal = getDaysSinceMar21(now) >= 360;
   const isPreview = previewDate !== null;
 
-  // "No location set" = still on factory default and GPS not enabled
-  const noLocation =
-    !usingGPS &&
-    location.latitude === DEFAULT_LAT &&
-    location.longitude === DEFAULT_LON;
+  // Blink until the user has explicitly confirmed a location at least once
+  const noLocation = !locationConfirmed;
 
   // Continuous blink animation for the settings button
   const blinkAnim = useRef(new Animated.Value(1)).current;
