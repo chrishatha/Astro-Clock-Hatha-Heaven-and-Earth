@@ -57,14 +57,16 @@ export default function ClockScreen() {
           </View>
           <PreviewDatePicker previewDate={previewDate} onSet={setPreviewDate} />
         </View>
-        <Text style={styles.appTitle}>Astro-Clock-HaTha</Text>
-        <TouchableOpacity
-          onPress={() => router.push('/(tabs)/settings')}
-          style={styles.settingsBtn}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Feather name="settings" size={22} color="#c9a227" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <Text style={styles.appTitle}>Astro-Clock-HaTha</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/settings')}
+            style={styles.settingsBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Feather name="settings" size={22} color="#c9a227" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Time slider — only visible in preview mode */}
@@ -189,14 +191,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     letterSpacing: 1,
   },
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: 6,
+    flexShrink: 0,
+  },
   appTitle: {
     fontSize: 13,
     color: '#c9a227',
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.8,
-    flex: 1,
-    textAlign: 'center',
-    marginTop: 4,
+    textAlign: 'right',
   },
   settingsBtn: {
     padding: 8,
