@@ -106,16 +106,24 @@ interface Props {
 }
 
 export default function MoonPhaseArc({ date, containerWidth }: Props) {
-  // Lunar phase: 0 = new moon, ~0.5 = full moon
+  // ── Slot logic ─────────────────────────────────────────────────────────────
+  // cycleDay: fractional days since last new moon (0 = new moon, ~14.77 = full moon, ~29.53 = next new moon)
   const lunarPhase = getLunarPhase(date);
-  const isWaning   = lunarPhase >= 0.5;
+  const cycleDay   = lunarPhase * SYNODIC_MONTH;
 
-  // dayInHalf: days elapsed since last new moon (waxing) or last full moon (waning)
-  // Rule: 15 slots = exactly 15 days → 1 slot per day, no skipping
-  const dayInHalf   = isWaning
-    ? (lunarPhase - 0.5) * SYNODIC_MONTH
-    : lunarPhase * SYNODIC_MONTH;
-  const currentSlot = Math.max(1, Math.min(15, Math.ceil(dayInHalf)));
+  // 1-indexed day number (1–30) via ceiling:
+  //   cycleDay 0.001 → day 1 (1 day after new moon)
+  //   cycleDay 14.77 → day 15 (full moon)      ← must NOT flip to waning here!
+  //   cycleDay 15.77 → day 16 (1 day after full moon) → waning slot 1
+  //   cycleDay 29.3  → day 30 (new moon day)           → waning slot 15
+  //
+  // Rule: days 1–15 = zunehmend (waxing), days 16–30 = abnehmend (waning)
+  // This guarantees exactly 15 slots each half, 1 slot = 1 calendar day, no skipping.
+  const dayNum     = cycleDay < 0.001 ? 1 : Math.ceil(cycleDay);
+  const isWaning   = dayNum > 15;
+  const currentSlot = isWaning
+    ? Math.min(15, dayNum - 15)
+    : Math.min(15, dayNum);
 
   const moonR   = 7;
   const arcPath = `M ${ARC_X1} ${ARC_Y0} Q ${ARC_CX} ${ARC_CY} ${ARC_X2} ${ARC_Y0}`;
