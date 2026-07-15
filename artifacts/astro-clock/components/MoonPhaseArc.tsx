@@ -4,7 +4,6 @@ import Svg, {
   Circle, ClipPath, Defs, Ellipse, G, Line, Path, Rect, Text as SvgText,
 } from 'react-native-svg';
 
-import { getLunarPhase } from '@/utils/astronomy';
 
 // ─── Layout constants (internal SVG coordinate space) ─────────────────────────
 const SVG_W = 380;
@@ -20,7 +19,55 @@ const ARC_CY = 32;   // bezier control y (above → upward bow, sag ≈ 18 px)
 // 16 tick labels, right (West 90°) → left (East 270°)
 const DEGREE_LABELS = [90, 78, 66, 54, 42, 30, 18, 6, 354, 342, 330, 318, 306, 294, 282, 270];
 
-const SYNODIC_MONTH = 29.53058867;
+const SYNODIC_MONTH  = 29.53058867; // days
+const REF_NEW_MOON   = new Date('2000-01-06T18:14:00Z'); // known new moon (J2000)
+
+// ─── Calendar-day slot calculation ─────────────────────────────────────────────
+//
+// RULE: 15 slots waxing (1 day after new moon … full moon day inclusive)
+//       15 slots waning (1 day after full moon … new moon day inclusive)
+//       1 slot = 1 whole UTC calendar day — no fractions, no skipping.
+//
+// Algorithm:
+//   1. Find the exact timestamp of the most recent new moon.
+//   2. Snap both that timestamp and "today" to UTC midnight (whole-day granularity).
+//   3. daysAfterNew = integer day count (0 = new moon day itself).
+//   4. Map to slots:
+//        daysAfterNew  0      → waning  slot 15  (new moon = end of waning)
+//        daysAfterNew  1–15   → waxing  slot 1–15
+//        daysAfterNew  16–30  → waning  slot 1–15
+//
+// Because we work exclusively with integers, the slot count is guaranteed to
+// advance by exactly 1 per calendar day — a skip is mathematically impossible.
+//
+function getMoonSlot(date: Date): { isWaning: boolean; slot: number } {
+  // Position within current synodic cycle (0 = new moon, 29.53 = next new moon)
+  const daysSinceRef  = (date.getTime() - REF_NEW_MOON.getTime()) / 86400000;
+  const cyclePos      = ((daysSinceRef % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
+
+  // Exact timestamp of the most recent new moon
+  const lastNewMoonMs = date.getTime() - cyclePos * 86400000;
+
+  // Snap both to UTC midnight (whole calendar days)
+  const d2utcMidnight = (ms: number) => {
+    const d = new Date(ms);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  };
+  const todayMidnight   = d2utcMidnight(date.getTime());
+  const newMoonMidnight = d2utcMidnight(lastNewMoonMs);
+
+  // Integer calendar days since new moon (0 = new moon day, 1 = next day, …)
+  const daysAfterNew = Math.round((todayMidnight - newMoonMidnight) / 86400000);
+
+  // Map to slot
+  if (daysAfterNew === 0) {
+    return { isWaning: true,  slot: 15 };  // new moon day = waning slot 15
+  } else if (daysAfterNew <= 15) {
+    return { isWaning: false, slot: daysAfterNew };  // waxing 1–15
+  } else {
+    return { isWaning: true,  slot: Math.min(15, daysAfterNew - 15) };  // waning 1–15
+  }
+}
 
 // ─── Bezier helper ─────────────────────────────────────────────────────────────
 function bezierPt(t: number): { x: number; y: number } {
@@ -106,24 +153,7 @@ interface Props {
 }
 
 export default function MoonPhaseArc({ date, containerWidth }: Props) {
-  // ── Slot logic ─────────────────────────────────────────────────────────────
-  // cycleDay: fractional days since last new moon (0 = new moon, ~14.77 = full moon, ~29.53 = next new moon)
-  const lunarPhase = getLunarPhase(date);
-  const cycleDay   = lunarPhase * SYNODIC_MONTH;
-
-  // 1-indexed day number (1–30) via ceiling:
-  //   cycleDay 0.001 → day 1 (1 day after new moon)
-  //   cycleDay 14.77 → day 15 (full moon)      ← must NOT flip to waning here!
-  //   cycleDay 15.77 → day 16 (1 day after full moon) → waning slot 1
-  //   cycleDay 29.3  → day 30 (new moon day)           → waning slot 15
-  //
-  // Rule: days 1–15 = zunehmend (waxing), days 16–30 = abnehmend (waning)
-  // This guarantees exactly 15 slots each half, 1 slot = 1 calendar day, no skipping.
-  const dayNum     = cycleDay < 0.001 ? 1 : Math.ceil(cycleDay);
-  const isWaning   = dayNum > 15;
-  const currentSlot = isWaning
-    ? Math.min(15, dayNum - 15)
-    : Math.min(15, dayNum);
+  const { isWaning, slot: currentSlot } = getMoonSlot(date);
 
   const moonR   = 7;
   const arcPath = `M ${ARC_X1} ${ARC_Y0} Q ${ARC_CX} ${ARC_CY} ${ARC_X2} ${ARC_Y0}`;
