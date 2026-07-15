@@ -74,7 +74,7 @@ export default function ClockScreen() {
   const { width } = Dimensions.get('window');
   const clockSize = Math.min(width - 16, 520);
 
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
   return (
@@ -338,7 +338,8 @@ const styles = StyleSheet.create({
   clockContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 8,
   },
 
   // ── Info bar ──────────────────────────────────────────────────────
