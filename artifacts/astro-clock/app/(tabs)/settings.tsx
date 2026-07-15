@@ -29,6 +29,22 @@ export default function SettingsScreen() {
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Sync input fields whenever the context location changes (e.g. after GPS update)
+  const prevLocationRef = useRef(location);
+  React.useEffect(() => {
+    const prev = prevLocationRef.current;
+    if (
+      prev.latitude !== location.latitude ||
+      prev.longitude !== location.longitude ||
+      prev.name !== location.name
+    ) {
+      setLatInput(String(location.latitude));
+      setLngInput(String(location.longitude));
+      setNameInput(location.name);
+      prevLocationRef.current = location;
+    }
+  }, [location]);
+
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
