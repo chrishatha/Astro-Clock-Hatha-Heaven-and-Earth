@@ -21,7 +21,6 @@ const ARC_CY = 32;   // bezier control y (above → upward bow, sag ≈ 18 px)
 const DEGREE_LABELS = [90, 78, 66, 54, 42, 30, 18, 6, 354, 342, 330, 318, 306, 294, 282, 270];
 
 const SYNODIC_MONTH = 29.53058867;
-const SYNODIC_HALF  = SYNODIC_MONTH / 2; // ≈ 14.77 days
 
 // ─── Bezier helper ─────────────────────────────────────────────────────────────
 function bezierPt(t: number): { x: number; y: number } {
@@ -111,11 +110,12 @@ export default function MoonPhaseArc({ date, containerWidth }: Props) {
   const lunarPhase = getLunarPhase(date);
   const isWaning   = lunarPhase >= 0.5;
 
+  // dayInHalf: days elapsed since last new moon (waxing) or last full moon (waning)
+  // Rule: 15 slots = exactly 15 days → 1 slot per day, no skipping
   const dayInHalf   = isWaning
     ? (lunarPhase - 0.5) * SYNODIC_MONTH
     : lunarPhase * SYNODIC_MONTH;
-  const slotDur     = SYNODIC_HALF / 15;
-  const currentSlot = Math.max(1, Math.min(15, Math.ceil(dayInHalf / slotDur)));
+  const currentSlot = Math.max(1, Math.min(15, Math.ceil(dayInHalf)));
 
   const moonR   = 7;
   const arcPath = `M ${ARC_X1} ${ARC_Y0} Q ${ARC_CX} ${ARC_CY} ${ARC_X2} ${ARC_Y0}`;
