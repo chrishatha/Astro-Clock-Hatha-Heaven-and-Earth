@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ClockFace from '@/components/ClockFace';
+import MoonPhaseArc from '@/components/MoonPhaseArc';
 import PreviewDatePicker from '@/components/PreviewDatePicker';
 import PreviewTimeSlider from '@/components/PreviewTimeSlider';
 import { useClockContext } from '@/context/ClockContext';
@@ -146,6 +147,9 @@ export default function ClockScreen() {
           <PreviewTimeSlider hour={previewHour} onChange={setPreviewHour} />
         </View>
       )}
+
+      {/* ── Moon phase arc ─────────────────────────────────────────── */}
+      <MoonPhaseArc date={now} containerWidth={width - 8} />
 
       {/* ── Clock ──────────────────────────────────────────────────── */}
       <View style={styles.clockContainer}>

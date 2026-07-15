@@ -1,0 +1,38 @@
+Zeichne in diesem leeren raum zwischen set preview date button und dem S für süd der Kreise der Uhr. Also unterhalb des set preview button und oberhalb des S für süd, in diesem Zwischenraum:
+
+Eine horizontale Linie von rechts nach links, die einen nach oben gerichteten gleichmäßigen schwachen Bogen hat. (gleichmäßig wie der Bogen eines größeren Kreises, aber ein schwacher, ein flacher Bogen)
+
+Dieser Bogen bekommt von rechts west nach links Ost unterteilungen so das 15 gleiche teile entstehen.
+(Zählweise zur Erklärung der teile ist von 1 rechts west nach 15 links Ost)
+
+Diese Unterteilungsstriche werden beschriftet: von rechts west nach links Ost 90° 78° 66° 54° 42° 30° 18° 6° 354° 342° 330° 318° 306° 294° 282° 270°.
+
+Oberhalb dieses Bogens mittig jeweils der einzelnen unterteilungsstriche, also mittig der einzelnen teile kommt jeweils ein Zeichnung eines Mond nach mondphasen wie folgt:
+
+A) 
+Teil 1 ist der erste tag nach vollmond, abnehmender Mond
+Nach teil 2 weiter abnehmend
+Nach teil 3 weiter abnehmend
+usw. bis 15 Neumond.
+(Diese monde sind alle grau schwarz. 
+
+Nur der Mond der aktuell in den 15 tagen des abnehmenden mondes laut datum gerade aktuell ist wird in gelbgold schwarz dargestellt, das man deutlich den unterschied und die Aktivität der aktuellen tatsächlichen mondphase sieht.
+
+Eine Schrift unter dem kreis in roter Farbe mit dem Wortlaut :"Morgenhimmel abnehmender Mond"
+
+Diese abnehmenden monde sind über dem Bogen nur sichtbar ab einschließlich dem ersten tag nach einem vollmond, bis einschließlich dem tag des Neumond.
+
+B) 
+Teil 1 ist der erste tag nach neumond, zunehmender Mond
+Nach teil 2 weiter zunehmend
+Nach teil 3 weiter zunehmend
+usw. bis 15 Vollmond.
+(Diese monde sind alle grau schwarz. 
+
+Nur der Mond der aktuell in den 15 tagen des zunehmenden mondes laut datum gerade aktuell ist wird in gelbgold schwarz dargestellt, das man deutlich den unterschied und die Aktivität der aktuellen tatsächlichen mondphase sieht.
+
+Eine Schrift unter dem kreis in blauer Farbe mit dem Wortlaut :"Abendhimmel zunehmender Mond"
+
+Diese zunehmenden monde sind über dem Bogen nur sichtbar ab einschließlich dem ersten tag nach einem neumond, bis einschließlich dem tag des vollmond.
+
+(Die Anzeige der Mondphasen des A Abnehmenden mondes und des B zunehmenden mondes wechseln also alle 15 tage genau mit dem tatsächlichen Mond und der tatsächlichen Mondphase des jeweiligen Tages. Immer der Mond der aktuell tatsächlich an diesem darum ist wird in gelbgold schwarzen mondphasen dargestellt und alle anderen sing grau schwarze Mondphasen.
