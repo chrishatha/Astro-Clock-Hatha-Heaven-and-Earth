@@ -1,0 +1,1 @@
+- [Mondbogen-Regel](moon-phase-arc.md) — Der grafische Mondbogen verwendet strikt zwei 15-Tage-Hälften und ignoriert unregelmäßige synodische Monatslängen.

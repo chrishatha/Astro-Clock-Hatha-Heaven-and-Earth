@@ -1,0 +1,45 @@
+## System-Spezifikation: Logik des symmetrischen 15-Tage-Mondphasenbogens
+
+## 1. Grundprinzip des grafischen Bogens
+Auf dem Bogen existieren bereits die 15 grafischen Mondphasen für die 15 Tage (von Tag 1 bis Tag 15).
+Der Bogen darf sich bei der Weiterschaltung niemals nach den unregelmäßigen Angaben herkömmlicher astronomischer Kalender richten (keine Sprünge auf 14 oder 16 Phasen). Es gilt das absolute Gesetz: Vom einschließlich 1. Tag nach einer Hauptphase (Vollmond/Neumond) bis zum einschließlich Tag der nächsten Hauptphase vergehen IMMER exakt 15 Tage.
+
+## 2. Das dynamische Bezugssystem (Solar Noon & Symmetrieachsen)
+Die Aktivierung der Monde basiert auf dem wahren Mittag (Solar Noon), welcher bereits dynamisch aus der vorhandenen Location-Bestimmung ausgelesen wird. (der solarnoon funktioniert bereits richtig und darf nicht verändert werden!)
+
+* Die Hauptachse: Der dynamische Solar Noon bildet die Hauptachse. Die Mitternachts-Gegenachse liegt exakt 12 Stunden verschoben zum Solar Noon.
+* Morgenhälfte (abnehmender Mond): Liegt zwischen der Mitternachts-Gegenachse und dem Solar Noon. Der veränderliche Fixpunkt für das Rendern ist die exakte Mitte dieser Hälfte (Solar Noon minus 6 Stunden [wert 1]). Hier werden die 15 Phasen bis zum Neumond geschaltet.
+* Abendhälfte (zunehmender Mond): Liegt zwischen dem Solar Noon und der Mitternachts-Gegenachse. Der veränderliche Fixpunkt für das Rendern ist die exakte Mitte dieser Hälfte (Solar Noon plus 6 Stunden [wert 2]). Hier werden die 15 Phasen bis zum Vollmond geschaltet.
+
+## 3. Dynamische Berechnungs-Logik für JEDES Datum (Algorithmus-Regel)
+Das System darf die Phasen nicht starr für einen festen Zeitraum einspeichern, sondern muss die mathematische Kette über einen dynamischen Algorithmus auf jedes beliebige Datum anwenden können:
+
+1. Berechne ausgehend von einem verifizierten Basis-Startpunkt (z. B. 29. Juli 2026 Vollmond, Abendhälfte) eine lückenlose mathematische Schleife in Schritten von unendlich fortlaufenden +15 Tagen.
+2. Wenn der Nutzer ein beliebiges Datum aufruft, ermittle über den Modulo-Operator oder eine fortlaufende Tageszählung (Days seit Basis-Startpunkt), im welchem der 15-tägigen Intervalle sich das aktuelle Datum befindet.
+3. Berechne den genauen Fortschritt (Tag 1 bis Tag 15) innerhalb des aktuellen Intervalls, um die exakte Mondphase auf dem Bogen an diesem Tag anzusteuern.
+4. Nutze die unten stehende Chronologie als Validierungs-Datensatz (Ground Truth), um zu prüfen, ob der universelle Algorithmus für diesen Testzeitraum exakt diese Tage ausgibt.
+
+* Test-Ausgangspunkt (Solar Noon Beispiel La Palma): 29. Juli 2026 Vollmond, Abendhälfte
+* 15 Tage auf dem zunehmenden/Vollmond-Bogenabschnitt (vom 30. Juli bis einschließlich 13. August)
+* Nächster Punkt: 13. August 2026 Neumond, Morgenhälfte
+* 15 Tage auf dem abnehmenden/Neumond-Bogenabschnitt (vom 14. August bis einschließlich 28. August)
+* Nächster Punkt: 28. August 2026 Vollmond, Morgenhälfte
+* 15 Tage vom 29. August bis einschließlich 12. September
+* Nächster Punkt: 12. September 2026 Neumond, Abendhälfte
+* 15 Tage vom 13. September bis einschließlich 27. September
+* Nächster Punkt: 27. September 2026 Vollmond, Abendhälfte
+* 15 Tage vom 28. September bis einschließlich 12. Oktober
+* Nächster Punkt: 12. Oktober 2026 Neumond, Morgenhälfte
+* 15 Tage vom 13. Oktober bis einschließlich 27. Oktober
+* Nächster Punkt: 27. Oktober 2026 Vollmond, Morgenhälfte
+* 15 Tage vom 28. Oktober bis einschließlich 11. November
+* Nächster Punkt: 11. November 2026 Neumond, Abendhälfte
+* 15 Tage vom 12. November bis einschließlich 26. November
+* Nächster Punkt: 26. November 2026 Vollmond, Abendhälfte
+* 15 Tage vom 27. November bis einschließlich 11. Dezember
+* Nächster Punkt: 11. Dezember 2026 Neumond, Morgenhälfte
+* 15 Tage vom 12. Dezember bis einschließlich 26. Dezember
+* Nächster Punkt: 26. Dezember 2026 Vollmond, Morgenhälfte
+* 15 Tage vom 27. Dezember bis einschließlich 10. Januar
+* Nächster Punkt: 10. Januar 2027 Neumond, Abendhälfte
+* 15 Tage vom 11. Januar bis einschließlich 25. Januar

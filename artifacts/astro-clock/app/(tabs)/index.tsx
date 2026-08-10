@@ -39,7 +39,7 @@ export default function ClockScreen() {
   const router = useRouter();
   const {
     now, previewDate, setPreviewDate, previewHour, setPreviewHour,
-    solarNoon, location, locationConfirmed,
+    solarNoon, solarNoonHour, location, locationConfirmed,
     layer2RotationDeg, layer3RotationDeg,
     sunAngleDeg, moonHandAngleDeg, crossRotationDeg,
     zodiacCurrentIndex, zodiacPrevIndex,
@@ -149,7 +149,11 @@ export default function ClockScreen() {
       )}
 
       {/* ── Moon phase arc ─────────────────────────────────────────── */}
-      <MoonPhaseArc date={now} containerWidth={width - 8} />
+      <MoonPhaseArc
+        date={now}
+        containerWidth={width - 8}
+        solarNoonHour={solarNoonHour}
+      />
 
       {/* ── Clock ──────────────────────────────────────────────────── */}
       <View style={styles.clockContainer}>

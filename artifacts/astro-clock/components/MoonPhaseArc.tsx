@@ -19,54 +19,54 @@ const ARC_CY = 32;   // bezier control y (above → upward bow, sag ≈ 18 px)
 // 16 tick labels, right (West 90°) → left (East 270°)
 const DEGREE_LABELS = [90, 78, 66, 54, 42, 30, 18, 6, 354, 342, 330, 318, 306, 294, 282, 270];
 
-const SYNODIC_MONTH  = 29.53058867; // days
-const REF_NEW_MOON   = new Date('2000-01-06T18:14:00Z'); // known new moon (J2000)
+const BASE_FULL_MOON = new Date(2026, 6, 29);
+const MS_PER_DAY = 86400000;
 
-// ─── Calendar-day slot calculation ─────────────────────────────────────────────
+// ─── Fixed symmetric 15-day cycle ─────────────────────────────────────────────
 //
-// RULE: 15 slots waxing (1 day after new moon … full moon day inclusive)
-//       15 slots waning (1 day after full moon … new moon day inclusive)
-//       1 slot = 1 whole UTC calendar day — no fractions, no skipping.
+// The arc uses a strict 30-day mathematical cycle, not the irregular length of
+// an astronomical synodic month:
+//   29 Jul 2026: full moon, waxing slot 15
+//   30 Jul–13 Aug: waning slots 1–15, new moon on 13 Aug
+//   14 Aug–28 Aug: waxing slots 1–15, full moon on 28 Aug
 //
-// Algorithm:
-//   1. Find the exact timestamp of the most recent new moon.
-//   2. Snap both that timestamp and "today" to UTC midnight (whole-day granularity).
-//   3. daysAfterNew = integer day count (0 = new moon day itself).
-//   4. Map to slots:
-//        daysAfterNew  0      → waning  slot 15  (new moon = end of waning)
-//        daysAfterNew  1–15   → waxing  slot 1–15
-//        daysAfterNew  16–30  → waning  slot 1–15
+// This sequence continues indefinitely in both directions. Calendar data can
+// therefore never cause a phase to be skipped.
 //
-// Because we work exclusively with integers, the slot count is guaranteed to
-// advance by exactly 1 per calendar day — a skip is mathematically impossible.
-//
+function calendarDayNumber(date: Date): number {
+  const dateAtUtcMidnight = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const baseAtUtcMidnight = Date.UTC(
+    BASE_FULL_MOON.getFullYear(),
+    BASE_FULL_MOON.getMonth(),
+    BASE_FULL_MOON.getDate(),
+  );
+  return Math.round((dateAtUtcMidnight - baseAtUtcMidnight) / MS_PER_DAY);
+}
+
+function positiveModulo(value: number, divisor: number): number {
+  return ((value % divisor) + divisor) % divisor;
+}
+
 function getMoonSlot(date: Date): { isWaning: boolean; slot: number } {
-  // Position within current synodic cycle (0 = new moon, 29.53 = next new moon)
-  const daysSinceRef  = (date.getTime() - REF_NEW_MOON.getTime()) / 86400000;
-  const cyclePos      = ((daysSinceRef % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
+  const daysSinceBase = calendarDayNumber(date);
 
-  // Exact timestamp of the most recent new moon
-  const lastNewMoonMs = date.getTime() - cyclePos * 86400000;
+  // 29 Jul itself is waxing slot 15; 30 Jul starts waning slot 1.
+  // 13 Aug is waning slot 15; 14 Aug starts waxing slot 1.
+  const position = positiveModulo(daysSinceBase - 1, 30);
+  const isWaning = position < 15;
+  const slot = isWaning ? position + 1 : position - 14;
 
-  // Snap both to UTC midnight (whole calendar days)
-  const d2utcMidnight = (ms: number) => {
-    const d = new Date(ms);
-    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  };
-  const todayMidnight   = d2utcMidnight(date.getTime());
-  const newMoonMidnight = d2utcMidnight(lastNewMoonMs);
+  return { isWaning, slot };
+}
 
-  // Integer calendar days since new moon (0 = new moon day, 1 = next day, …)
-  const daysAfterNew = Math.round((todayMidnight - newMoonMidnight) / 86400000);
-
-  // Map to slot
-  if (daysAfterNew === 0) {
-    return { isWaning: true,  slot: 15 };  // new moon day = waning slot 15
-  } else if (daysAfterNew <= 15) {
-    return { isWaning: false, slot: daysAfterNew };  // waxing 1–15
-  } else {
-    return { isWaning: true,  slot: Math.min(15, daysAfterNew - 15) };  // waning 1–15
-  }
+function formatHourOffset(solarNoonHour: number | null, offsetHours: number): string {
+  if (solarNoonHour == null || !Number.isFinite(solarNoonHour)) return '--:--';
+  const totalMinutes = (
+    Math.round(solarNoonHour * 60) + offsetHours * 60 + 1440
+  ) % 1440;
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  return `${hour}:${String(minute).padStart(2, '0')}`;
 }
 
 // ─── Bezier helper ─────────────────────────────────────────────────────────────
@@ -150,9 +150,10 @@ function MoonIcon({
 interface Props {
   date: Date;
   containerWidth: number;
+  solarNoonHour: number;
 }
 
-export default function MoonPhaseArc({ date, containerWidth }: Props) {
+export default function MoonPhaseArc({ date, containerWidth, solarNoonHour }: Props) {
   const { isWaning, slot: currentSlot } = getMoonSlot(date);
 
   const moonR   = 7;
@@ -188,7 +189,9 @@ export default function MoonPhaseArc({ date, containerWidth }: Props) {
   });
 
   const labelColor = isWaning ? '#cc3333' : '#4488cc';
-  const labelText  = isWaning ? 'Morgenhimmel abnehmender Mond' : 'Abendhimmel zunehmender Mond';
+  const labelText  = isWaning
+    ? `morning heaven waning moon ${formatHourOffset(solarNoonHour, -6)}`
+    : `evening heaven waxing moon ${formatHourOffset(solarNoonHour, 6)}`;
 
   const svgHeight = Math.round(containerWidth * SVG_H / SVG_W);
 
@@ -205,7 +208,7 @@ export default function MoonPhaseArc({ date, containerWidth }: Props) {
             <Line x1={x} y1={y} x2={x} y2={y + 6} stroke="#263c52" strokeWidth={1} />
             <SvgText
               x={x} y={y + 14}
-              textAnchor="middle" dominantBaseline="middle"
+              textAnchor="middle"
               fontSize={6.5} fill="#344c60"
             >
               {label}°
@@ -229,7 +232,7 @@ export default function MoonPhaseArc({ date, containerWidth }: Props) {
         {/* Section label */}
         <SvgText
           x={SVG_W / 2} y={SVG_H - 3}
-          textAnchor="middle" dominantBaseline="middle"
+          textAnchor="middle"
           fontSize={8.5} fill={labelColor} fontWeight="600"
         >
           {labelText}
