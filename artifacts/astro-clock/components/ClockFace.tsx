@@ -45,8 +45,16 @@ function arc(R: number, ri: number, start: number, end: number): string {
 
 /** Tangential text group: rotate around clock center, then optionally flip */
 function TangentialText({
-  angleDeg, r, children, fontSize, fill, dy = 0,
-}: { angleDeg: number; r: number; children: string; fontSize: number; fill: string; dy?: number }) {
+  angleDeg, r, children, fontSize, fill, dy = 0, fontWeight = '500',
+}: {
+  angleDeg: number;
+  r: number;
+  children: string;
+  fontSize: number;
+  fill: string;
+  dy?: number;
+  fontWeight?: string;
+}) {
   const flip = angleDeg > 90 && angleDeg < 270;
   const pos = P(r, angleDeg);
   return (
@@ -58,7 +66,7 @@ function TangentialText({
           dominantBaseline="middle"
           fontSize={fontSize}
           fill={fill}
-          fontWeight="500"
+          fontWeight={fontWeight}
           transform={flip ? `rotate(180, ${CX}, ${CY - r + dy})` : undefined}
         >
           {children}
@@ -69,7 +77,7 @@ function TangentialText({
 }
 
 // ─── Layer 1: Fixed compass square + degree ring ──────────────────────────────
-function Layer1Fixed() {
+function Layer1Fixed({ moonHandAngleDeg }: { moonHandAngleDeg: number }) {
   const fieldColors = ['#cc3333', '#cc3333', '#cc3333', '#cc3333', '#cc3333',
                        '#cc3333', '#cc3333', '#cc3333', '#cc3333', '#cc3333',
                        '#339933', '#339933', '#339933', '#339933', '#339933',
@@ -80,8 +88,13 @@ function Layer1Fixed() {
   const elementFields = [
     { field: 6, name: 'fire' }, { field: 12, name: 'wind' },
     { field: 18, name: 'earth' }, { field: 24, name: 'water' },
-    { field: 30, name: 'eather' },
+    { field: 30, name: 'ether' },
   ];
+
+  const activeElementField = elementFields.find(({ field }) => {
+    const fieldCenterAngle = (field - 1) * 12 + 6;
+    return fieldCenterAngle === moonHandAngleDeg;
+  })?.field;
 
   const ticks = useMemo(() => Array.from({ length: 360 }, (_, i) => {
     const major = i % 12 === 0;
@@ -147,7 +160,15 @@ function Layer1Fixed() {
 
       {/* Element names — moved inward so they don't overlap degree numbers */}
       {elementFields.map(({ field, name }) => (
-        <TangentialText key={field} angleDeg={(field - 1) * 12 + 6} r={L1_INNER + 18} fontSize={17} fill="#8899aa" dy={-2}>
+        <TangentialText
+          key={field}
+          angleDeg={(field - 1) * 12 + 6}
+          r={L1_INNER + 18}
+          fontSize={field === activeElementField ? 26 : 17}
+          fill={field === activeElementField ? '#ffffff' : '#8899aa'}
+          fontWeight={field === activeElementField ? '800' : '500'}
+          dy={-2}
+        >
           {name}
         </TangentialText>
       ))}
@@ -490,7 +511,7 @@ export default function ClockFace({
       <Circle cx={CX} cy={CY} r={460} fill="#06080f" />
 
       {/* Layer 1 – fixed ring */}
-      <Layer1Fixed />
+      <Layer1Fixed moonHandAngleDeg={moonHandAngleDeg} />
 
       {/* Sun journey arc — March 21 (1°) to today, just inside the degree ring */}
       <Path
