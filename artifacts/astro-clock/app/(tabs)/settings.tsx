@@ -236,7 +236,16 @@ export default function SettingsScreen() {
              'Layer 3 – Zodiac ring (rotates with Earth, radiance at noon)\n' +
              'Layer 4 – Sun hand (1°/day from spring equinox)\n' +
              'Layer 5 – Moon hand (synodic cycle pattern)\n' +
-             'Layer 6 – Lunar phase cross (aligned to month phases)'}
+              'Layer 6 – Lunar phase cross (aligned to month phases)\n\n' +
+              'The Dynamic Moon Arc Principle\n\n' +
+              'The main axis is the true noon (Solar Noon). Exactly 12 hours offset lies the counter-axis. These two axes divide the day into two dynamic halves: the Morning Half and the Evening Half.\n\n' +
+              'The exact center of these halves determines the fixed time for looking up at the sky:\n\n' +
+              'Evening Half (Waxing)\n' +
+              'Solar Noon + 6 hours.\n\n' +
+              'Morning Half (Waning)\n' +
+              'Solar Noon – 6 hours.\n\n' +
+              'At this calculated time, time stands still for observation in the actual sky.\n' +
+              'The moon moves daily in 12° steps from West to East (180° total arc / sky from West through South to East ÷ 15 days / parts).'}
           </Text>
         </View>
 
