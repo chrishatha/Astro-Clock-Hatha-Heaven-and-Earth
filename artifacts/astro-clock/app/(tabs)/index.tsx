@@ -48,6 +48,7 @@ export default function ClockScreen() {
 
   const isEpagomenal = getDaysSinceMar21(now) >= 360;
   const isPreview = previewDate !== null;
+  const sunDayCount = getDaysSinceMar21(now) + 1;
 
   // Blink until the user has explicitly confirmed a location at least once
   const noLocation = !locationConfirmed;
@@ -113,7 +114,7 @@ export default function ClockScreen() {
               {now.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </Text>
             <View style={styles.sunDayBadge}>
-              <Text style={styles.sunDayText}>☀ {Math.round(sunAngleDeg)}</Text>
+              <Text style={styles.sunDayText}>☀ {sunDayCount}</Text>
             </View>
           </View>
 
