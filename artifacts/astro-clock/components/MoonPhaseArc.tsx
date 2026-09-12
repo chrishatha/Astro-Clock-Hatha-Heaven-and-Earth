@@ -50,9 +50,10 @@ function positiveModulo(value: number, divisor: number): number {
 function getMoonSlot(date: Date): { isWaning: boolean; slot: number } {
   const daysSinceBase = calendarDayNumber(date);
 
-  // 29 Jul itself is waxing slot 15; 30 Jul starts waning slot 1.
-  // 13 Aug is waning slot 15; 14 Aug starts waxing slot 1.
-  const position = positiveModulo(daysSinceBase - 1, 30);
+  // The visual activation is intentionally one calendar day ahead:
+  // the former waxing slot 15 is already shown as waning slot 1 today.
+  // The underlying 15-day halves remain unchanged.
+  const position = positiveModulo(daysSinceBase, 30);
   const isWaning = position < 15;
   const slot = isWaning ? position + 1 : position - 14;
 
