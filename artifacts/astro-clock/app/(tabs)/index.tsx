@@ -93,7 +93,7 @@ export default function ClockScreen() {
   }, [noLocation]);
 
   const { width } = Dimensions.get('window');
-  const clockSize = Math.min(width - 16, 520);
+  const clockSize = Math.min(width + 12, 520);
 
   const topPad = insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -200,49 +200,44 @@ export default function ClockScreen() {
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Solar Noon</Text>
-            <Text style={styles.infoValue}>{formatSolarNoon(solarNoon)}</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>{formatSolarNoon(solarNoon)}</Text>
           </View>
           <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Location</Text>
-            <Text style={styles.infoValue}>{location.name}</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>{location.name}</Text>
           </View>
           <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Lat / Lon</Text>
-            <Text style={styles.infoValue}>
+            <Text style={styles.infoValue} numberOfLines={1}>
               {location.latitude.toFixed(2)}° / {location.longitude.toFixed(2)}°
             </Text>
           </View>
         </View>
         <View style={styles.infoSep} />
-        <View style={styles.infoRow}>
+        <View style={styles.phaseInfoRow}>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Full Moon</Text>
-            <Text style={styles.infoValue} numberOfLines={2}>
+            <Text style={styles.phaseInfoValue} numberOfLines={2}>
               {formatMoonPhaseEvents(moonPhaseEvents.fullMoon, locationTimeZone)}
             </Text>
           </View>
-          <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>New Moon</Text>
-            <Text style={styles.infoValue} numberOfLines={2}>
+            <Text style={styles.phaseInfoValue} numberOfLines={2}>
               {formatMoonPhaseEvents(moonPhaseEvents.newMoon, locationTimeZone)}
             </Text>
           </View>
-        </View>
-        <View style={styles.infoSep} />
-        <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>First Quarter</Text>
-            <Text style={styles.infoValue} numberOfLines={2}>
+            <Text style={styles.phaseInfoValue} numberOfLines={2}>
               {formatMoonPhaseEvents(moonPhaseEvents.firstQuarter, locationTimeZone)}
             </Text>
           </View>
-          <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Last Quarter</Text>
-            <Text style={styles.infoValue} numberOfLines={2}>
+            <Text style={styles.phaseInfoValue} numberOfLines={2}>
               {formatMoonPhaseEvents(moonPhaseEvents.lastQuarter, locationTimeZone)}
             </Text>
           </View>
@@ -386,11 +381,11 @@ const styles = StyleSheet.create({
   // ── Info bar ──────────────────────────────────────────────────────
   infoBar: {
     backgroundColor: '#0a1220',
-    borderRadius: 12,
+    borderRadius: 10,
     marginHorizontal: 16,
     marginBottom: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     borderWidth: 1,
     borderColor: '#1e2d42',
     width: '92%',
@@ -399,7 +394,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingVertical: 3,
+    paddingVertical: 1,
+  },
+  phaseInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 1,
   },
   infoSep: {
     height: 1,
@@ -409,7 +410,7 @@ const styles = StyleSheet.create({
   infoItem: {
     flex: 1,
     alignItems: 'center',
-    gap: 1,
+    gap: 0,
   },
   infoLabel: {
     fontSize: 8,
@@ -419,13 +420,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   infoValue: {
-    fontSize: 11,
+    fontSize: 9,
     color: '#c9a227',
     fontFamily: 'Inter_600SemiBold',
   },
+  phaseInfoValue: {
+    fontSize: 9,
+    lineHeight: 10,
+    color: '#c9a227',
+    fontFamily: 'Inter_600SemiBold',
+    textAlign: 'center',
+  },
   infoDivider: {
     width: 1,
-    height: 24,
+    height: 18,
     backgroundColor: '#1e2d42',
   },
 });
