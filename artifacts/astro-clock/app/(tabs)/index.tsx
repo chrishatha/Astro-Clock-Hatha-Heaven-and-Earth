@@ -160,6 +160,7 @@ export default function ClockScreen() {
       <View style={styles.clockContainer}>
         <ClockFace
           size={clockSize}
+          currentDay={now.getDate()}
           layer2RotationDeg={layer2RotationDeg}
           layer3RotationDeg={layer3RotationDeg}
           sunAngleDeg={sunAngleDeg}

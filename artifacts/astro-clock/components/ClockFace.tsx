@@ -77,7 +77,7 @@ function TangentialText({
 }
 
 // ─── Layer 1: Fixed compass square + degree ring ──────────────────────────────
-function Layer1Fixed({ moonHandAngleDeg }: { moonHandAngleDeg: number }) {
+function Layer1Fixed({ moonHandAngleDeg, currentDay }: { moonHandAngleDeg: number; currentDay: number }) {
   const fieldColors = ['#cc3333', '#cc3333', '#cc3333', '#cc3333', '#cc3333',
                        '#cc3333', '#cc3333', '#cc3333', '#cc3333', '#cc3333',
                        '#339933', '#339933', '#339933', '#339933', '#339933',
@@ -95,6 +95,7 @@ function Layer1Fixed({ moonHandAngleDeg }: { moonHandAngleDeg: number }) {
     const fieldCenterAngle = (field - 1) * 12 + 6;
     return fieldCenterAngle === moonHandAngleDeg;
   })?.field;
+  const highlightedDay = currentDay === 31 ? 1 : currentDay;
 
   const ticks = useMemo(() => Array.from({ length: 360 }, (_, i) => {
     const major = i % 12 === 0;
@@ -128,6 +129,14 @@ function Layer1Fixed({ moonHandAngleDeg }: { moonHandAngleDeg: number }) {
           fill="rgba(140,140,140,0.18)"
         />
       ))}
+
+      {/* Current calendar day, with day 31 represented by field 1 */}
+      <Path
+        d={arc(L1_OUTER, L1_INNER, (highlightedDay - 1) * 12, highlightedDay * 12)}
+        fill="rgba(232,213,163,0.34)"
+        stroke="rgba(232,213,163,0.82)"
+        strokeWidth={2}
+      />
 
       {/* 30 field divider lines to center */}
       {Array.from({ length: 30 }, (_, i) => {
@@ -463,6 +472,7 @@ function Layer6Cross({
 // ─── Main clock face ──────────────────────────────────────────────────────────
 interface Props {
   size: number;
+  currentDay: number;
   layer2RotationDeg: number;
   layer3RotationDeg: number;
   sunAngleDeg: number;
@@ -479,6 +489,7 @@ interface Props {
 
 export default function ClockFace({
   size,
+  currentDay,
   layer2RotationDeg,
   layer3RotationDeg,
   sunAngleDeg,
@@ -511,7 +522,7 @@ export default function ClockFace({
       <Circle cx={CX} cy={CY} r={460} fill="#06080f" />
 
       {/* Layer 1 – fixed ring */}
-      <Layer1Fixed moonHandAngleDeg={moonHandAngleDeg} />
+      <Layer1Fixed moonHandAngleDeg={moonHandAngleDeg} currentDay={currentDay} />
 
       {/* Sun journey arc — March 21 (1°) to today, just inside the degree ring */}
       <Path
