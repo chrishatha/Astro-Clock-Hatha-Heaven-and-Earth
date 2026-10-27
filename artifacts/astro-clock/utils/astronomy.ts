@@ -1,4 +1,13 @@
-import { SearchMoonPhase } from 'astronomy-engine';
+import {
+  AstroTime,
+  Body,
+  Equator,
+  Observer,
+  RotateVector,
+  Rotation_EQD_ECT,
+  Search,
+  SearchMoonPhase,
+} from 'astronomy-engine';
 import tzLookup from '@photostructure/tz-lookup';
 
 // All angles in "clockwise from south" convention (0°=south/top, clockwise positive)
@@ -14,6 +23,50 @@ export interface MoonPhaseEvents {
   firstQuarter: MoonPhaseEvent[];
   fullMoon: MoonPhaseEvent[];
   lastQuarter: MoonPhaseEvent[];
+}
+
+function signedAngle(degrees: number): number {
+  return ((degrees + 180) % 360 + 360) % 360 - 180;
+}
+
+/**
+ * Apparent topocentric ecliptic longitude difference for the selected observer.
+ */
+function topocentricPhaseError(
+  time: AstroTime,
+  observer: Observer,
+  targetLongitude: number,
+): number {
+  const eclipticRotation = Rotation_EQD_ECT(time);
+  const moon = RotateVector(
+    eclipticRotation,
+    Equator(Body.Moon, time, observer, true, true).vec,
+  );
+  const sun = RotateVector(
+    eclipticRotation,
+    Equator(Body.Sun, time, observer, true, true).vec,
+  );
+  const moonLongitude = Math.atan2(moon.y, moon.x) * 180 / Math.PI;
+  const sunLongitude = Math.atan2(sun.y, sun.x) * 180 / Math.PI;
+  return signedAngle(moonLongitude - sunLongitude - targetLongitude);
+}
+
+function findTopocentricPhase(
+  targetLongitude: number,
+  geocentricEstimate: Date,
+  observer: Observer,
+): Date {
+  // The geocentric phase time is only a seed for the local topocentric root search.
+  const searchRadius = MS_PER_DAY;
+  const time = Search(
+    candidate => topocentricPhaseError(candidate, observer, targetLongitude),
+    new AstroTime(new Date(geocentricEstimate.getTime() - searchRadius)),
+    new AstroTime(new Date(geocentricEstimate.getTime() + searchRadius)),
+  );
+  if (!time) {
+    throw new Error(`Unable to calculate local lunar phase at ${targetLongitude}°.`);
+  }
+  return time.date;
 }
 
 export function getLocationTimeZone(latitude: number, longitude: number): string {
@@ -108,33 +161,41 @@ const MOON_PHASES = [
 ] as const;
 
 /**
- * Find exact astronomical phase instants whose local calendar date falls
- * within the requested month at the given IANA time zone.
+ * Find topocentric lunar phase instants for an observer at the given coordinates.
+ * Event dates are filtered using the observer's local IANA time zone.
  */
-export function getMoonPhaseEvents(year: number, month: number, timeZone: string): MoonPhaseEvents {
+export function getMoonPhaseEvents(
+  year: number,
+  month: number,
+  timeZone: string,
+  latitude: number,
+  longitude: number,
+): MoonPhaseEvents {
   const utcMonthStart = Date.UTC(year, month - 1, 1);
   const searchStart = new Date(utcMonthStart - 40 * MS_PER_DAY);
   const searchEnd = Date.UTC(year, month, 1) + 40 * MS_PER_DAY;
+  const observer = new Observer(latitude, longitude, 0);
 
-  const collectPhaseEvents = (longitude: number): MoonPhaseEvent[] => {
+  const collectPhaseEvents = (phaseLongitude: number): MoonPhaseEvent[] => {
     const events: MoonPhaseEvent[] = [];
     let cursor = new Date(searchStart);
 
     for (let attempt = 0; attempt < 6 && cursor.getTime() < searchEnd; attempt += 1) {
-      const result = SearchMoonPhase(longitude, cursor, 40);
+      const result = SearchMoonPhase(phaseLongitude, cursor, 40);
       if (!result) {
         cursor = new Date(cursor.getTime() + 40 * MS_PER_DAY);
         continue;
       }
 
-      const instant = result.date;
-      if (instant.getTime() >= searchEnd) break;
+      const geocentricEstimate = result.date;
+      if (geocentricEstimate.getTime() >= searchEnd) break;
+      const instant = findTopocentricPhase(phaseLongitude, geocentricEstimate, observer);
 
       const localDate = getDatePartsInTimeZone(instant, timeZone);
       if (localDate.year === year && localDate.month === month) {
         events.push({ instant, day: localDate.day });
       }
-      cursor = new Date(instant.getTime() + 1_000);
+      cursor = new Date(geocentricEstimate.getTime() + 1_000);
     }
 
     return events;

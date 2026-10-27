@@ -4,13 +4,15 @@ description: Accuracy and local-time requirements for phase event dates and the 
 ---
 
 The Astro Clock must calculate new moon, first quarter, full moon, and last
-quarter from actual astronomical phase instants, then convert them to the time
-zone for the selected coordinates. The moon cross must show the event's local
-calendar day. Keep this separate from the intentionally fixed moon arc.
+quarter topocentrically for the selected coordinates. Convert each event to the
+coordinates' local time zone, and show its local calendar day in the moon cross.
+Keep this separate from the intentionally fixed moon arc.
 
-**Why:** The user rejected averaged or arbitrary phase dates and times, asking
-for accurate event data and confirming that the existing arc itself works.
+**Why:** The user rejected averaged or arbitrary phase dates and times, and on
+27 October 2026 clarified that the phase timing itself must be location-specific,
+not merely converted from a geocentric instant. They confirmed that the existing
+arc works and should remain unchanged.
 
-**How to apply:** Use astronomical phase calculations for event timestamps and
-coordinate-derived IANA time zones for displayed dates and times; do not alter
+**How to apply:** Use topocentric apparent ecliptic positions for event
+timestamps, plus coordinate-derived IANA time zones for display. Do not alter
 the fixed 15+15-day arc unless the user explicitly asks.

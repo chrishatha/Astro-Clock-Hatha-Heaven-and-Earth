@@ -202,8 +202,20 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
   );
   const locationDate = getDatePartsInTimeZone(effective, locationTimeZone);
   const moonPhaseEvents = useMemo(
-    () => getMoonPhaseEvents(locationDate.year, locationDate.month, locationTimeZone),
-    [locationDate.year, locationDate.month, locationTimeZone],
+    () => getMoonPhaseEvents(
+      locationDate.year,
+      locationDate.month,
+      locationTimeZone,
+      location.latitude,
+      location.longitude,
+    ),
+    [
+      locationDate.year,
+      locationDate.month,
+      locationTimeZone,
+      location.latitude,
+      location.longitude,
+    ],
   );
   const representativeDay = (events: MoonPhaseEvent[]): number | null => {
     const upcoming = events.find(event => event.instant.getTime() >= effective.getTime());
