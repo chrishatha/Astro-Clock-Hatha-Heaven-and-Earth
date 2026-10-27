@@ -229,18 +229,6 @@ export default function ClockScreen() {
               {formatMoonPhaseEvents(moonPhaseEvents.newMoon, locationTimeZone)}
             </Text>
           </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>First Quarter</Text>
-            <Text style={styles.phaseInfoValue} numberOfLines={2}>
-              {formatMoonPhaseEvents(moonPhaseEvents.firstQuarter, locationTimeZone)}
-            </Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Last Quarter</Text>
-            <Text style={styles.phaseInfoValue} numberOfLines={2}>
-              {formatMoonPhaseEvents(moonPhaseEvents.lastQuarter, locationTimeZone)}
-            </Text>
-          </View>
         </View>
       </View>
 
