@@ -1,15 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 
 import {
   calculateSolarNoon,
   getCrossRotation,
+  getDatePartsInTimeZone,
+  getLocationTimeZone,
   getMoonHandAngle,
-  getMoonPhaseDays,
+  getMoonPhaseEvents,
   getSunAngle,
   getZodiacIndex,
   getZodiacRotation,
+  type MoonPhaseEvent,
+  type MoonPhaseEvents,
 } from '@/utils/astronomy';
 
 export interface Location {
@@ -25,6 +29,8 @@ export interface ClockValues {
   previewHour: number;
   setPreviewHour: (h: number) => void;
   location: Location;
+  locationTimeZone: string;
+  moonPhaseEvents: MoonPhaseEvents;
   usingGPS: boolean;
   /** true once the user has explicitly saved any location (persists across restarts) */
   locationConfirmed: boolean;
@@ -190,23 +196,35 @@ export function ClockProvider({ children }: { children: React.ReactNode }) {
 
   const sunAngleDeg = getSunAngle(effective);
   const moonHandAngleDeg = getMoonHandAngle(effective);
-  const crossRotationDeg = getCrossRotation(effective.getFullYear(), effective.getMonth());
+  const locationTimeZone = useMemo(
+    () => getLocationTimeZone(location.latitude, location.longitude),
+    [location.latitude, location.longitude],
+  );
+  const locationDate = getDatePartsInTimeZone(effective, locationTimeZone);
+  const moonPhaseEvents = useMemo(
+    () => getMoonPhaseEvents(locationDate.year, locationDate.month, locationTimeZone),
+    [locationDate.year, locationDate.month, locationTimeZone],
+  );
+  const representativeDay = (events: MoonPhaseEvent[]): number | null => {
+    const upcoming = events.find(event => event.instant.getTime() >= effective.getTime());
+    const selected = upcoming ?? events[events.length - 1];
+    return selected?.day ?? null;
+  };
+  const fullMoonDay = representativeDay(moonPhaseEvents.fullMoon);
+  const firstQuarterDay = representativeDay(moonPhaseEvents.firstQuarter);
+  const newMoonDay = representativeDay(moonPhaseEvents.newMoon);
+  const lastQuarterDay = representativeDay(moonPhaseEvents.lastQuarter);
+  const crossRotationDeg = getCrossRotation(fullMoonDay);
   const zodiacCurrentIndex = getZodiacIndex(effective);
   const zodiacPrevIndex = (zodiacCurrentIndex - 1 + 12) % 12;
-
-  const {
-    fullMoon: fullMoonDay,
-    firstQuarter: firstQuarterDay,
-    newMoon: newMoonDay,
-    lastQuarter: lastQuarterDay,
-  } = getMoonPhaseDays(effective.getFullYear(), effective.getMonth());
 
   return (
     <ClockContext.Provider value={{
       now: effective,
       previewDate, setPreviewDate,
       previewHour, setPreviewHour,
-      location, usingGPS, locationConfirmed, resetLocation,
+      location, locationTimeZone, moonPhaseEvents,
+      usingGPS, locationConfirmed, resetLocation,
       solarNoon, solarNoonHour,
       layer2RotationDeg, layer3RotationDeg, sunAngleDeg,
       moonHandAngleDeg, crossRotationDeg, zodiacCurrentIndex, zodiacPrevIndex,

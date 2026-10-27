@@ -17,7 +17,7 @@ import MoonPhaseArc from '@/components/MoonPhaseArc';
 import PreviewDatePicker from '@/components/PreviewDatePicker';
 import PreviewTimeSlider from '@/components/PreviewTimeSlider';
 import { useClockContext } from '@/context/ClockContext';
-import { getDaysSinceMar21 } from '@/utils/astronomy';
+import { getDaysSinceMar21, type MoonPhaseEvent } from '@/utils/astronomy';
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
@@ -26,6 +26,24 @@ function formatTime(date: Date): string {
 function formatSolarNoon(date: Date | null): string {
   if (!date) return '--:--';
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function formatMoonPhaseEvents(events: MoonPhaseEvent[], timeZone: string): string {
+  if (events.length === 0) return '--';
+
+  return events.map(({ instant }) => {
+    const parts = new Intl.DateTimeFormat('de-DE', {
+      timeZone,
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(instant);
+    const value = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find(part => part.type === type)?.value ?? '--';
+    return `${value('day')}.${value('month')}. ${value('hour')}:${value('minute')}`;
+  }).join('\n');
 }
 
 function stepDay(base: Date, delta: number): Date {
@@ -40,6 +58,7 @@ export default function ClockScreen() {
   const {
     now, previewDate, setPreviewDate, previewHour, setPreviewHour,
     solarNoon, solarNoonHour, location, locationConfirmed,
+    locationTimeZone, moonPhaseEvents,
     layer2RotationDeg, layer3RotationDeg,
     sunAngleDeg, moonHandAngleDeg, crossRotationDeg,
     zodiacCurrentIndex, zodiacPrevIndex,
@@ -199,20 +218,32 @@ export default function ClockScreen() {
         <View style={styles.infoSep} />
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>🌕 Full Moon</Text>
-            <Text style={styles.infoValue}>
-              {fullMoonDay != null
-                ? `${String(fullMoonDay).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.`
-                : '--'}
+            <Text style={styles.infoLabel}>Full Moon</Text>
+            <Text style={styles.infoValue} numberOfLines={2}>
+              {formatMoonPhaseEvents(moonPhaseEvents.fullMoon, locationTimeZone)}
             </Text>
           </View>
           <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>🌑 New Moon</Text>
-            <Text style={styles.infoValue}>
-              {newMoonDay != null
-                ? `${String(newMoonDay).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.`
-                : '--'}
+            <Text style={styles.infoLabel}>New Moon</Text>
+            <Text style={styles.infoValue} numberOfLines={2}>
+              {formatMoonPhaseEvents(moonPhaseEvents.newMoon, locationTimeZone)}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.infoSep} />
+        <View style={styles.infoRow}>
+          <View style={styles.infoItem}>
+            <Text style={styles.infoLabel}>First Quarter</Text>
+            <Text style={styles.infoValue} numberOfLines={2}>
+              {formatMoonPhaseEvents(moonPhaseEvents.firstQuarter, locationTimeZone)}
+            </Text>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoItem}>
+            <Text style={styles.infoLabel}>Last Quarter</Text>
+            <Text style={styles.infoValue} numberOfLines={2}>
+              {formatMoonPhaseEvents(moonPhaseEvents.lastQuarter, locationTimeZone)}
             </Text>
           </View>
         </View>

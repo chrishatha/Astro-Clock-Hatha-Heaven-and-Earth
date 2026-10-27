@@ -1,2 +1,3 @@
 - [Mondbogen-Regel](moon-phase-arc.md) — Der grafische Mondbogen verwendet strikt zwei 15-Tage-Hälften und ignoriert unregelmäßige synodische Monatslängen.
 - [Datumsring](calendar-day-ring.md) — Der 30-Tage-Ring hebt das aktuelle Tagesfeld hervor; am 31. steht Feld 1 stellvertretend.
+- [Mondphasen-Ereignisse](moon-phase-events.md) — Phasenzeitpunkte astronomisch berechnen und in der Ortszeitzone anzeigen; den festen Mondbogen nicht verändern.

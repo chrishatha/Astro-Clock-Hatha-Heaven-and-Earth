@@ -1,4 +1,41 @@
+import { SearchMoonPhase } from 'astronomy-engine';
+import tzLookup from '@photostructure/tz-lookup';
+
 // All angles in "clockwise from south" convention (0°=south/top, clockwise positive)
+const MS_PER_DAY = 86_400_000;
+
+export interface MoonPhaseEvent {
+  instant: Date;
+  day: number;
+}
+
+export interface MoonPhaseEvents {
+  newMoon: MoonPhaseEvent[];
+  firstQuarter: MoonPhaseEvent[];
+  fullMoon: MoonPhaseEvent[];
+  lastQuarter: MoonPhaseEvent[];
+}
+
+export function getLocationTimeZone(latitude: number, longitude: number): string {
+  return tzLookup(latitude, longitude);
+}
+
+export function getDatePartsInTimeZone(date: Date, timeZone: string): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find(value => value.type === type)?.value);
+
+  return { year: part('year'), month: part('month'), day: part('day') };
+}
 
 export function getDayOfYear(date: Date): number {
   const start = new Date(date.getFullYear(), 0, 0);
@@ -63,73 +100,51 @@ export function getMoonHandAngle(date: Date): number {
   return POSITIONS[idx];
 }
 
+const MOON_PHASES = [
+  { key: 'newMoon', longitude: 0 },
+  { key: 'firstQuarter', longitude: 90 },
+  { key: 'fullMoon', longitude: 180 },
+  { key: 'lastQuarter', longitude: 270 },
+] as const;
+
 /**
- * Find the actual calendar dates of all four lunar phases for a given month.
- *
- * Strategy: iterate nearby lunations and find the new moon whose full moon
- * (new + 14.77 days) lands inside [year, month].  Then derive FQ, LQ, and
- * whether the new moon itself is in this month.
- *
- * Returns null for a phase date that falls outside the target month.
+ * Find exact astronomical phase instants whose local calendar date falls
+ * within the requested month at the given IANA time zone.
  */
-export function getMoonPhaseDays(year: number, month: number): {
-  newMoon: number | null;
-  firstQuarter: number | null;
-  fullMoon: number | null;
-  lastQuarter: number | null;
-} {
-  const monthStart = new Date(Date.UTC(year, month, 1));
-  const daysSinceRef = (monthStart.getTime() - KNOWN_NEW_MOON.getTime()) / 86400000;
-  const approxLunation = daysSinceRef / SYNODIC_MONTH;
+export function getMoonPhaseEvents(year: number, month: number, timeZone: string): MoonPhaseEvents {
+  const utcMonthStart = Date.UTC(year, month - 1, 1);
+  const searchStart = new Date(utcMonthStart - 40 * MS_PER_DAY);
+  const searchEnd = Date.UTC(year, month, 1) + 40 * MS_PER_DAY;
 
-  /** Date from a decimal day-offset from KNOWN_NEW_MOON */
-  const nmAt = (lunationIndex: number): Date =>
-    new Date(KNOWN_NEW_MOON.getTime() + lunationIndex * SYNODIC_MONTH * 86400000);
+  const collectPhaseEvents = (longitude: number): MoonPhaseEvent[] => {
+    const events: MoonPhaseEvent[] = [];
+    let cursor = new Date(searchStart);
 
-  /** Is a UTC date in [year, month]? */
-  const inMonth = (d: Date) =>
-    d.getUTCFullYear() === year && d.getUTCMonth() === month;
+    for (let attempt = 0; attempt < 6 && cursor.getTime() < searchEnd; attempt += 1) {
+      const result = SearchMoonPhase(longitude, cursor, 40);
+      if (!result) {
+        cursor = new Date(cursor.getTime() + 40 * MS_PER_DAY);
+        continue;
+      }
 
-  const utcDay = (d: Date): number | null =>
-    inMonth(d) ? Math.max(1, Math.min(31, d.getUTCDate())) : null;
+      const instant = result.date;
+      if (instant.getTime() >= searchEnd) break;
 
-  // Search for the lunation whose FULL moon (new + 14.77 d) is in this month
-  let baseNewMoon: Date | null = null;
-  for (let offset = -2; offset <= 3; offset++) {
-    const lunation = Math.floor(approxLunation) + offset;
-    const nm = nmAt(lunation);
-    const fm = new Date(nm.getTime() + 14.77 * 86400000);
-    if (inMonth(fm)) {
-      baseNewMoon = nm;
-      break;
+      const localDate = getDatePartsInTimeZone(instant, timeZone);
+      if (localDate.year === year && localDate.month === month) {
+        events.push({ instant, day: localDate.day });
+      }
+      cursor = new Date(instant.getTime() + 1_000);
     }
-  }
 
-  // Fallback — no full moon in this month (very rare, e.g. short February)
-  if (!baseNewMoon) {
-    baseNewMoon = nmAt(Math.round(approxLunation));
-  }
-
-  const fmDate = new Date(baseNewMoon.getTime() + 14.77 * 86400000);
-  const fqDate = new Date(baseNewMoon.getTime() +  7.38 * 86400000);
-  const lqDate = new Date(fmDate.getTime()      +  7.38 * 86400000);
-
-  // Independently find a new moon that itself falls within this month
-  let newMoonInMonth: Date | null = null;
-  for (let offset = -2; offset <= 3; offset++) {
-    const lunation = Math.floor(approxLunation) + offset;
-    const nm = nmAt(lunation);
-    if (inMonth(nm)) {
-      newMoonInMonth = nm;
-      break;
-    }
-  }
+    return events;
+  };
 
   return {
-    newMoon:      utcDay(newMoonInMonth),
-    firstQuarter: fqDate.getUTCDate(),
-    fullMoon:     fmDate.getUTCDate(),
-    lastQuarter:  lqDate.getUTCDate(),
+    newMoon: collectPhaseEvents(MOON_PHASES[0].longitude),
+    firstQuarter: collectPhaseEvents(MOON_PHASES[1].longitude),
+    fullMoon: collectPhaseEvents(MOON_PHASES[2].longitude),
+    lastQuarter: collectPhaseEvents(MOON_PHASES[3].longitude),
   };
 }
 
@@ -138,9 +153,8 @@ export function getMoonPhaseDays(year: number, month: number): {
  * day-field.  Arm layout clockwise: full(0°) → lastQ(90°) → new(180°) → firstQ(270°).
  * Each 90° ≈ 7.5 fields × 12°/field, matching the ~7.4-day quarter spacing.
  */
-export function getCrossRotation(year: number, month: number): number {
-  const { fullMoon } = getMoonPhaseDays(year, month);
-  const day = fullMoon ?? 15; // sensible fallback: mid-month
+export function getCrossRotation(fullMoonDay: number | null): number {
+  const day = fullMoonDay ?? 15; // sensible fallback: mid-month
   return (day - 1) * 12 + 6; // centre of that day's field
 }
 
