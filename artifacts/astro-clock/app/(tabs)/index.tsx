@@ -93,13 +93,13 @@ export default function ClockScreen() {
   }, [noLocation]);
 
   const { width } = Dimensions.get('window');
-  const clockSize = Math.min(width + 12, 520);
+  const clockSize = Math.min(width + 24, 520);
 
   const topPad = insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
   return (
-    <View style={[styles.container, { paddingTop: topPad + 8, paddingBottom: botPad + 8 }]}>
+    <View style={[styles.container, { paddingTop: topPad + 8, paddingBottom: botPad }]}>
 
       {/* ── Header ─────────────────────────────────────────────────── */}
       <View style={styles.header}>
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a1220',
     borderRadius: 10,
     marginHorizontal: 16,
-    marginBottom: 6,
+    marginBottom: 0,
     paddingVertical: 2,
     paddingHorizontal: 6,
     borderWidth: 1,
